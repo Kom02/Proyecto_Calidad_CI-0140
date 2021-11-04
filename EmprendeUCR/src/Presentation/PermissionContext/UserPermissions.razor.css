@@ -1,0 +1,49 @@
+﻿h5 {
+    text-align: center;
+}
+
+h6 {
+    text-align: center;
+    margin-bottom: 1%;
+}
+
+html {
+    height: 100vh
+}
+
+.tableLabel {
+    font-size: 20px;
+}
+
+.td {
+    font-size: 30px;
+}
+
+.td {
+    font-size: 35px;
+}
+
+.dataPermission {
+    width: 65%;
+    margin: auto;
+}
+
+.primary_title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.secondary_title {
+    font-size: 15px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.botonAccept {
+    margin-top: 2%;
+}
+
+.center {
+    text-align: center;
+}

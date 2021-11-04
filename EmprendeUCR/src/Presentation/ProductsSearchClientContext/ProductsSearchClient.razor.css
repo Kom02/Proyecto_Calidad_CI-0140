@@ -1,0 +1,211 @@
+﻿html {
+    height: 100vh;
+}
+
+.padre {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.izquierdo {
+    width: 25%;
+    height: 100%;
+    align-content: flex-start;
+}
+
+.derecho {
+    /*width: 75%;
+    height: 100%;
+    display: flex;
+    align-content: center;*/
+    width: 75%;
+    align-content: center;
+}
+
+
+.sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+}
+
+.btn-corner {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
+
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.grid div:nth-child(odd) {
+    background-color: #145DA2;
+}
+
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--blue-color);
+    color: var(--white);
+    text-align: center;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    grid-gap: 0.5em;
+}
+
+.item_description {
+    color: var(--grey);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: italic;
+    font-size: 16px;
+}
+
+.item_price {
+    color: var(--blue-color);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+
+.float_right {
+    float: right;
+}
+
+
+.float_left {
+    float: left;
+}
+
+.wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    min-width: 250px;
+    min-height: 250px;
+    margin: 1%;
+}
+
+.imageProduct {
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: 130px;
+    height: 130px;
+    border-radius: 10px;
+}
+
+.button-img {
+    margin-top: 10px;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: 130px;
+    height: 130px;
+    border-radius: 10px;
+}
+
+
+.allProducts {
+    display: flex;
+    width: 100%;
+    height: 75%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+}
+
+.allServices {
+    display: flex;
+    width: 100%;
+    height: 25%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+}
+
+.flex-buscar {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 8px;
+}
+
+.errorMessage {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    font-size: 30px;
+    text-align: center;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.card {
+    width: 30%;
+    margin-left: 10px;
+    margin-right: 10px;
+    height: 320px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.botonCompra {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: 175px;
+}
+
+.secondary_title {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.ProductTitle {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    font-size: 30px;
+    text-align: center;
+    /*width: 100%;*/
+    margin-top: 8px;
+}
+
+.ServiceTitle {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    font-size: 30px;
+    text-align: center;
+    /*width: 100%;*/
+    margin-top: 8px;
+}

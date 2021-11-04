@@ -1,0 +1,314 @@
+﻿@page "/Login"
+
+﻿@*
+    1. Crear procedimiento almacenado que retorne la contraseña de un correo
+    2. Crear interface de inicio de sesión
+    3. Retroalimentación de los datos ingresados  del usuario
+    4. Comprobar la contraseña
+*@
+
+@using EmprendeUCR.Application.LoginContext
+@using Microsoft.AspNetCore.WebUtilities
+@using EmprendeUCR.Domain.Core.CoreEntities 
+@inject NavigationManager NavigationManager
+@inject ILoginService LoginService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IJSRuntime JsRuntime
+
+<!--HTML-->
+<div class="flexDiv">
+    <div class="mainClass">
+        <h1>Iniciar Sesión</h1>
+        <EditForm Model="email" OnValidSubmit="CheckPassword">
+
+            <!--Email input-->
+            <div class="marginElements">
+                <label for="Email" class="form-label secondary_title">Correo electrónico:</label>
+                <InputText type="email" class="form-control inputClass" aria-describedby="emailHelp" id="exampleInputEmail1" @bind-Value="email" />
+                <div id="emailHelp" class="form-text">Nunca compartiremos su información personal</div>
+            </div>
+
+            <!--Password input-->
+            <div class="marginElements">
+                <label for="Password" class="form-label secondary_title">Contraseña:</label>
+                <InputText type="@pwdType" class="form-control inputClass" aria-describedby="emailHelp" id="exampleInputEmail1" @bind-Value="password" />
+                <Input type="checkbox" @onclick="@showPassword"> Mostrar Contraseña
+                <div id="emailHelp" class="form-text">Nunca compartiremos su información personal</div>
+            </div>
+            <br />
+
+            <!--User type input-->
+            <p class="secondary_title marginElements">Seleccione su perfil:</p>
+
+            <div class="form-check">
+                @if(userType == 1)
+                {
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" @onchange="@(() =>changeType(1))" checked>
+                }
+                else
+                {
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" @onchange="@(() =>changeType(1))">
+                }
+                <label class="form-check-label" for="flexRadioDefault1">Cliente</label>
+            </div>
+            <div class="form-check">
+                @if(userType == 2)
+                {
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" @onchange="@(() =>changeType(2))" checked>
+                }
+                else
+                {
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" @onchange="@(() =>changeType(2))">
+                }
+                <label class="form-check-label" for="flexRadioDefault2">Emprendedor</label>
+            </div>
+
+            <div class="form-check">
+                @if(userType == 3)
+                {
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault3" @onchange="@(() =>changeType(3))" checked>
+                }
+                else
+                {
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault3" @onchange="@(() =>changeType(3))">
+                }
+                <label class="form-check-label" for="flexRadioDefault3">Administrador</label>
+            </div>
+
+            <!--Submit button-->
+            <center>
+                <button class="submit btn btn-primary"> Ingresar </button>
+                <a class="link" @onclick="Register"> Registrarme </a>
+            </center>
+            <center>
+                <a class="link forgotPassword" @onclick="ForgotPassword"> ¿Olvidó su contraseña? </a>
+
+                <p style="color:#FF0000">
+                    @Error_Message
+                </p>
+            </center>
+
+
+        </EditForm>
+    </div>
+</div>
+
+@code
+{
+    /*Login Atributes*/
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string DBpassword = string.Empty;
+    private string pwdType = "password";
+    private string text = "Mostrar Contraseña";
+    private string Error_Message = string.Empty;
+    private int userType = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("type", out var typeOfUser))
+        {
+            switch(typeOfUser.ToString())
+            {
+                case "Client":
+                    userType = 1;
+                    break;
+                case "Entrepreneur":
+                    userType = 2;
+                    break;
+                case "Administrator":
+                    userType = 3;
+                    break;
+            }
+        }
+    }
+
+    /*
+    Brief: Check the user credentials.
+    Parameters:
+    Returns:
+    */
+    public async void CheckPassword()
+    {
+        email = email.ToLower();
+        if (userType == 0)
+        {
+            Error_Message = "No seleccionó el tipo de usuario";
+        }
+        else
+        {
+            //Error_Message = "";
+            if (await LoginService.verifyTypeUser(email, userType))
+            {
+                Error_Message = "";
+                if (string.IsNullOrEmpty(email))
+                {
+                    Error_Message = "Correo o contraseña incorrecto";
+                }
+                else
+                {
+                    //Error_Message = "";
+                    DBpassword = await LoginService.GetPasswordAsync(email);
+
+                    if (string.IsNullOrEmpty(DBpassword))
+                    {
+                        Error_Message = "Correo o contraseña incorrecto";
+                    }
+                    else if (DBpassword == (LoginService.encryptPassword(password)))
+                    {
+                        /*Verifica que el administrador esté verificado por el administrador master*/
+                        /*MODIFICAR ESTE CODIGO, MUY LARGO*/
+                        if (userType == 3)
+                        {
+                            ActiveAdministrators admin = await LoginService.getActiveAdministrators(email);
+                            if (admin != null)
+                            {
+                                if (admin.Response)
+                                {
+                                    if (admin.Confirm)
+                                    {
+                                        if (admin.Active)
+                                        {
+                                            string BannedMessgae = (await (LoginService.GetBannedMessage(email)));
+                                            if (!String.IsNullOrEmpty(BannedMessgae))
+                                            {
+                                                Error_Message = BannedMessgae;
+                                            }
+                                            else
+                                            {
+                                                acceptLogin();
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Error_Message = "Su cuenta de administrador no está activa.";
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Error_Message = "Lo sentimos, su cuenta como administrador ha sido rechazada.";
+                                    }
+                                }
+                                else
+                                {
+                                    Error_Message = "Su cuenta aún no ha sido aprobada por un administrador.";
+                                }
+                            }
+                            else
+                            {
+                                Error_Message = "Correo de administrador no encontrado.";
+                            }
+
+                        }
+                        else
+                        {
+                            string BannedMessgae = (await (LoginService.GetBannedMessage(email)));
+                            if ( !String.IsNullOrEmpty(BannedMessgae))
+                            {
+                                Error_Message = BannedMessgae;
+                            }
+                            else
+                            {
+                                acceptLogin();
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        Error_Message = "Correo o contraseña incorrecto.";
+                    }
+                }
+            }
+            else
+            {
+                Error_Message = "El correo ingresado no esta registrado con el tipo de usuario.";
+            }
+        }
+        StateHasChanged();
+    }
+
+    /*
+    Brief: Save the user client type.
+    Parameters:
+    Returns:
+    */
+    private void changeType(int type)
+    {
+        userType = type;
+    }
+
+
+    /*
+   Brief:This method navigate to the register page
+   Param:N/A
+   Return:N/A
+   */
+
+    public void Register()
+    {
+        NavigationManager.NavigateTo("/registro");
+    }
+
+    /*
+   Brief:This method navigate to the  forgot password page
+   Param:N/A
+   Return:N/A
+   */
+
+    public void ForgotPassword()
+    {
+        NavigationManager.NavigateTo("/ForgotPassword");
+    }
+
+    /*
+   Brief:This method show the user the input tha is in the space of the password
+   Param:N/A
+   Return:N/A
+   */
+
+    public void showPassword()
+    {
+        if (pwdType == "password")
+        {
+            pwdType = "text";
+            text = "Esconder Contraseña";
+        }
+        else
+        {
+            pwdType = "password";
+            text = "Mostrar Contraseña";
+        }
+    }
+
+    /*
+    Brief: Accept the user login.
+    Parameters:
+    Returns:
+    */
+    protected async void acceptLogin()
+    {
+        await sessionStorage.SetItemAsync("Email", email);
+        await sessionStorage.SetItemAsync("Type", userType);
+        await sessionStorage.SetItemAsync<string>("UserNotification","null");
+        string homeRef = "";
+
+        switch (userType)
+        {
+            case 1:
+                homeRef = "/";
+                break;
+            case 2:
+                homeRef = "/HomeEntrepreneur";
+                break;
+            case 3:
+                homeRef = "/admin";
+                break;
+            default:
+                homeRef = "";
+                break;
+        }
+        NavigationManager.NavigateTo(homeRef, forceLoad: true);
+    }
+}

@@ -1,0 +1,82 @@
+﻿@page "/ExpirationError"
+@using EmprendeUCR.Application.LoginContext
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager NavigationManager
+@inject ILoginService LoginService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@*<center>*@
+<center>
+    <h2>El correo de confirmación ha vencido</h2>
+    <h4>Si desea un nuevo link de confirmación presione el botón</h4>
+</center>
+<center>
+    <button type="submit" class="btn btn-primary" @onclick="@reeviarCorreo">Reenviar correo confirmación</button>
+</center>
+
+@code {
+    private bool _verificandoCorreo = true;
+    string hash_correo = "";
+    int type = 0;
+    private EmailConfirmation _email;
+
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("email", out var hash_parameter))
+        {
+            hash_correo = hash_parameter;
+        }
+
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("type", out var type_parameter))
+        {
+            type = Convert.ToInt32(type_parameter);
+        }
+
+        if (!string.IsNullOrEmpty(hash_correo) && type >= 1 && type <= 3)
+        {
+            _email = LoginService.getEmailConfirmationByHash(hash_correo);
+            if (_email == null)
+            {
+                NavigationManager.NavigateTo("/messagePage?type=3");
+            }
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/messagePage?type=3");
+        }
+
+    }
+
+    private async Task reeviarCorreo()
+    {
+        string hashCorreo = LoginService.hashEmail(_email.Email);
+
+        EmailConfirmation e = new EmailConfirmation
+        {
+            Email = _email.Email,
+            Creation_Date = DateTime.Now,
+            Expiration_Date = DateTime.Now.AddDays(3),
+            Hash_Code = hashCorreo,
+        };
+
+        LoginService.updateEmailConfirmations(e);
+
+        Mail mail = this.GetMail(e, type);
+        LoginService.SendMail(mail);
+        NavigationManager.NavigateTo("/messagePage?type=4");
+
+    }
+
+    public Mail GetMail(EmailConfirmation email, int userType)
+    {
+        Mail mail = new Mail();
+        mail.Subject = "Confirmación de Email";
+        mail.Body = LoginService.getMailBody(email.Hash_Code, userType);
+        mail.ToMailIds = new List<string>()
+{
+           email.Email,
+        };
+        return mail;
+    }
+}

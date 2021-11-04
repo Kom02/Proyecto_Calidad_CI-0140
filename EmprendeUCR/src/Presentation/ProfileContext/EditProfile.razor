@@ -1,0 +1,462 @@
+﻿@page  "/EditProfile"
+
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Application.ProfileContext
+@using Blazored.FluentValidation
+
+@inject IProfileService profileService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@if (!_isLoading)
+{
+
+    <nav class=" mt-3 navbar navbar-light bg-light">
+        <h3>Editar mi perfil</h3>
+    </nav>
+
+    <div class="flex-container">
+        <EditForm Model="@myUser" OnValidSubmit="@save">
+            <FluentValidationValidator />
+            <div class="principal">
+
+                <div class="principalObject">
+
+                    <div class="flexDivEnd">
+
+                        <div class="objects">
+                            <!--Email-->
+                            <div class="marginElements">
+                                <label for="staticEmail" class="form-label secondary_title">Correo electrónico:</label>
+                                <InputText type="text" @bind-Value="@myUser.Email" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Email" readonly />
+                            </div>
+
+                            <!--Name-->
+                            <div class="marginElements">
+                                <label for="inputName" class="form-label secondary_title">Nombre:</label>
+                                <InputText type="text" @bind-Value="@myUser.Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Name" required />
+                                <ValidationMessage For="@(()=> myUser.Name)"> </ValidationMessage>
+                            </div>
+
+                            <!--First last name-->
+                            <div class="marginElements">
+                                <label for="inputFLastName" class="form-label secondary_title">Primer apellido</label>
+                                <InputText type="text" @bind-Value="@myUser.F_Last_Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.F_Last_Name" required />
+                                <ValidationMessage For="@(()=> myUser.F_Last_Name)"> </ValidationMessage>
+                            </div>
+
+                            <!--Second last name-->
+                            <div class="marginElements">
+                                <label for="inputSLastName" class="form-label secondary_title">Segundo apellido</label>
+                                <InputText type="text" @bind-Value="@myUser.S_Last_Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.S_Last_Name" required />
+                                <ValidationMessage For="@(()=> myUser.S_Last_Name)"> </ValidationMessage>
+                            </div>
+
+                            <!--Phone-->
+                            <div class="marginElements">
+                                <label for="inputPhone" class="form-label secondary_title">Teléfono</label>
+                                <InputText type="text" @bind-Value="@userPhone.Phone_Number" class="form-control inputsClass" id="staticEmail" placeholder="@userPhone.Phone_Number" required maxlength="8" />
+                                <ValidationMessage For="@(()=> userPhone.Phone_Number)"> </ValidationMessage>
+                            </div>
+
+                            <!--Birth date-->
+                            <div class="marginElements">
+                                <label for="inputBDate" class="control-label secondary_title">Fecha de nacimiento:</label>
+                                <InputDate type="date" @bind-Value="@myUser.Birth_Date" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Birth_Date"/>
+                                <ValidationMessage For="@(()=> myUser.Birth_Date)"> </ValidationMessage>
+                            </div>
+
+                            <!--Image-->
+                            <div class="marginElements">
+                                <div class="flexElementsColumns">
+                                    <label for="imageUser" class="secondary_title">Foto de perfil:</label>
+                                    @if (myUser.Photo != null)
+                                    {
+                                        <img src="data:image;base64,@System.Convert.ToBase64String(myUser.Photo)" class="userImage" />
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/images.png" class="userImage" />
+                                    }
+                                    <InputFile OnChange="uploadImage" class="uploadPhoto" accept="image/png, image/jpg, image/jpeg" id="imageUser" />
+                                    <label for="imageUser" class="alert">@warning</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="principalObject">
+                    <div class="flexDivStart">
+                        <div class="objects">
+                            <!--Address-->
+                            <!--Province, Canton and District-->
+                            <div class="marginElements">
+                                <label class="control-label secondary_title">Dirección:</label>
+                            </div>
+
+                            <div class="marginElements flexElementsColumns">
+                                <label for="Province" class="secondary_title control-label">Provincia:</label>
+                                <select id="Province" class="form-control" @onchange="getCantons">
+                                    <option value="" disabled>Provincia</option>
+                                    <option selected hidden>@myUser.Province_Name</option>
+                                    @foreach (var province in _province)
+                                    {
+                                        <option>@province.Name</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="marginElements flexElementsColumns">
+
+                                <label for="Canton" class="secondary_title control-label">Cantón:</label>
+                                <select id="Canton" class="form-control" @onchange="getDistricts">
+                                    <option value="" disabled>Cantón</option>
+                                    <option selected hidden>@myUser.Canton_Name</option>
+                                    @foreach (var canton in _canton)
+                                    {
+                                        <option>@canton.Name</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="marginElements flexElementsColumns">
+
+                                <label for="District" class="secondary_title control-label">Distrito:</label>
+                                <select id="District" class="form-control">
+                                    <option value="" disabled>Distrito</option>
+                                    <option selected hidden>@myUser.District_Name</option>
+                                    @foreach (var district in _district)
+                                    {
+                                        <option>@district.Name</option>
+                                    }
+                                </select>
+                            </div>
+
+                            @if (myMember != null)
+                            {
+                                <!--Exact address-->
+                                <div class="marginElements">
+                                    <label class="secondary_title">Dirección exacta: </label>
+                                    <InputTextArea type="text" @bind-Value="myMember.Direction" class="form-control inputsClass" id="staticEmail" placeholder="@myMember.Direction" maxlength="200" rows="3" required />
+                                    <ValidationMessage For="@(()=> myMember.Direction)"> </ValidationMessage>
+                                </div>
+                            }
+
+                            <!--Categories for clients and entrepreneurs-->
+                            <div class="marginElements">
+                                @if (myClient != null || myEntrepreneur != null)
+                                {   
+                                    <!-- Button trigger modal -->
+                                    <div class="marginElements flexElementsColumns">
+                                        <label class="secondary_title">Categorías preferidas: </label>
+                                        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                                            Seleccionar categorías
+                                        </button>
+                                    </div>
+
+                                    <!-- Modal -->
+                                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="exampleModalLabel">Seleccione las categorías de su preferencia</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="accordion" id="accordionCategories">
+                                                        <div class="accordion-item flexElementsColumns">
+
+
+                                                            @{
+                                                                IList<Category> parents = profileService.GetParentCategories();
+                                                                IList<Category> children;
+                                                                IList<Likes> userLikes = new List<Likes>(myLikes);
+
+                                                                foreach (var parent in parents)
+                                                                {
+                                                                    <label class="secondary_title" id="@parent.Id">
+                                                                        <div class="form-check styleDropdown">
+                                                                            @{
+                                                                                int index = getIndex(userLikes, parent.Id);
+                                                                            }
+                                                                            @if(index != -1)
+                                                                            {
+                                                                                <input type="checkbox" id="box_@parent.Id" value="@parent.Id" checked />
+                                                                                userLikes.RemoveAt(index);
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <input type="checkbox" id="box_@parent.Id" value="@parent.Id" />
+                                                                            }
+                                                                            <label class="marginDropdown" for="box_@parent.Id">@parent.Title</label>
+                                                                            <button class="accordion-button collapsed acordionSize" type="button" data-bs-toggle="collapse" data-bs-target="#cat_@parent.Id" aria-expanded="false" aria-controls="cat_@parent.Id"></button>
+                                                                        </div>
+                                                                    </label>
+                                                                    <div id="cat_@parent.Id" class="accordion-collapse collapse" aria-labelledby="@parent.Id" data-bs-parent="#accordionCategories">
+                                                                        <div class="accordion-body">
+                                                                            @{ 
+                                                                                children = profileService.GetCategoryChildren((int)parent.Id);
+                                                                                setNewCategory(children);
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                }
+
+                                                                void setNewCategory(IList<Category> subCategory)
+                                                                {
+                                                                    foreach (var newCategory in subCategory)
+                                                                    {
+
+                                                                        <div class="form-check">
+                                                                            @{
+                                                                                int index = getIndex(userLikes, @newCategory.Id);
+                                                                                if(index != -1)
+                                                                                {
+                                                                                    <input type="checkbox" id="box_@newCategory.Id" value="@newCategory.Id" checked/>
+                                                                                    userLikes.RemoveAt(index);
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <input type="checkbox" id="box_@newCategory.Id" value="@newCategory.Id" />
+                                                                                }
+                                                                                <label class="marginDropdown" for="box_@newCategory.Id">@newCategory.Title</label>
+                                                                            }
+                                                                        </div>
+
+                                                                        setNewCategory(profileService.GetCategoryChildren((int)newCategory.Id));
+                                                                    }
+                                                                }
+
+                                                                int getIndex(IList<Likes> list, int id)
+                                                                {
+                                                                    int resp = -1;
+                                                                    int index = 0;
+                                                                    int lenght = list.Count();
+                                                                    while(resp == -1 && index < lenght)
+                                                                    {
+                                                                        if(list[index].Category_Id == id)
+                                                                        {
+                                                                            resp = index;
+                                                                        }
+                                                                        ++index;
+                                                                    }
+                                                                    return resp;
+                                                                }
+                                                            }
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer flex-center">
+                                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                            <!--Presentation Only for entrepreneur users-->
+                            @if (myEntrepreneur != null)
+                            {
+                                <label class="secondary_title">Presentación</label>
+                                <InputTextArea type="text" @bind-Value="myEntrepreneur.Presentation" class="form-control inputsClass" id="staticEmail" placeholder="@myEntrepreneur.Presentation" maxlength="200" rows="3" required />
+                                <ValidationMessage For="@(()=> myEntrepreneur.Presentation)"> </ValidationMessage>
+                            }
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <center>
+                <button type="submit" class="btn btn-primary marginButton">Guardar cambios </button>
+            </center>
+        </EditForm>
+    </div>
+
+}
+else
+{
+    <p>Cargando...</p>
+}
+
+@code{
+    private User myUser;
+    private Client myClient = null;
+    private Members myMember = null;
+    private Entrepreneur myEntrepreneur = null;
+    private Administrator myAdministrator = null;
+    private Phones userPhone = null;
+    private IList<Likes> myLikes = new List<Likes>();
+    private IList<Category> categories = null;
+
+    private bool _isLoading = true;
+    private string homeReference = "/";
+
+    private IList<Province> _province;
+    private IList<Canton> _canton;
+    private IList<District> _district;
+    private string province;
+    private string canton;
+    private string district;
+    private string imageUrl;
+    private byte[] buffer;
+
+    private string warning = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        string email = await sessionStorage.GetItemAsync<string>("Email");
+        int userType = await sessionStorage.GetItemAsync<int>("Type");
+        myUser = await profileService.GetUser(email);
+
+        // General user information
+        userPhone = await profileService.GetPhone(email);
+        _province = profileService.GetProvinces();
+        _canton = profileService.GetCantons(myUser.Province_Name);
+        _district = profileService.GetDistricts(myUser.Canton_Name);
+
+        // Specific user information
+        if(userType == 3) // Administrator
+        {
+            myAdministrator = await profileService.GetAdministrator(email);
+            homeReference += "Administrator";
+        }
+        else // Entrepreneur and Client
+        {
+            myMember = await profileService.GetMember(email);
+            myLikes = await profileService.GetLikes(myUser.Email);
+            categories = profileService.GetCategories();
+
+            if(userType == 1) // Client
+            {
+                myClient = await profileService.GetClient(email);
+            }
+            else // Entrepreneur
+            {
+                myEntrepreneur = await profileService.GetEntrepreneur(email);
+                homeReference += "Entrepreneur";
+            }
+        }
+        _isLoading = false;
+    }
+
+    public async void save()
+    {
+        myUser.Province_Name = await JsRuntime.InvokeAsync<string>("getValue", "Province");
+        myUser.Canton_Name = await JsRuntime.InvokeAsync<string>("getValue", "Canton");
+        myUser.District_Name = await JsRuntime.InvokeAsync<string>("getValue", "District");
+        if ((this.checkAge()))
+        {
+            await profileService.UpdatePhone(myUser.Email, userPhone.Phone_Number);
+            await profileService.UpdateUser(myUser);
+            if (myAdministrator != null)
+            {
+                await profileService.UpdateAdministrator(myAdministrator);
+            }
+            else // Clients and entrepreneurs
+            {
+                await profileService.UpdateMember(myMember);
+
+                if (myClient != null)
+                {
+                    await profileService.UpdateClient(myClient);
+                }
+                else // Entrepreneurs
+                {
+                    await profileService.UpdateEntrepreneur(myEntrepreneur);
+                }
+
+                // Likes for clients and entrepreneurs
+                foreach (var likes in myLikes)
+                {
+                    await profileService.RemoveLikes(likes);
+                }
+                int selections = -1; // Sin categorías favoritas
+                foreach (var category in categories)
+                {
+                    selections = await JsRuntime.InvokeAsync<int>("getSelectedValues", "box_" + category.Id.ToString());
+                    if (selections != -1)
+                    {
+                        Likes l = new Likes
+                        {
+                            Members_Email = myUser.Email,
+                            Category_Id = selections,
+                        };
+                        await profileService.AddLikes(l);
+                    }
+                }
+            }
+            NavigationManager.NavigateTo("/Profile", forceLoad: true);
+        }
+        else { await JsRuntime.InvokeVoidAsync("alerta", "Solo personas mayores de edad pueden registrarse en la página."); }
+    }
+
+    private bool checkAge()
+    {
+        if ((DateTime.Now - myUser.Birth_Date).TotalDays >= 6570)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    /*
+    Brief: Obtains the list of cantons according to the province chosen by the user.
+    Parameters:
+    Returns:
+    */
+    public async Task getCantons()
+    {
+        province = await JsRuntime.InvokeAsync<string>("getValue", "Province");
+        _canton = profileService.GetCantons(province);
+        _district = profileService.GetDistricts(".");
+        await JsRuntime.InvokeVoidAsync("setRequired", "Canton");
+        await JsRuntime.InvokeVoidAsync("setRequired", "District");
+        await JsRuntime.InvokeVoidAsync("resetOption", "Canton");
+        await JsRuntime.InvokeVoidAsync("resetOption", "District");
+        await JsRuntime.InvokeVoidAsync("enabled", "Canton");
+        await JsRuntime.InvokeVoidAsync("enabled", "District");
+    }
+
+    /*
+    Brief: Obtains the list of districts according to the canton chosen by the user.
+    Parameters:
+    Returns:
+    */
+    public async Task getDistricts()
+    {
+        canton = await JsRuntime.InvokeAsync<string>("getValue", "Canton");
+        _district = profileService.GetDistricts(canton);
+        await JsRuntime.InvokeVoidAsync("setRequired", "District");
+        await JsRuntime.InvokeVoidAsync("resetOption", "District");
+    }
+
+    /*
+    Brief: Shows the profile picture that the user uploaded.
+    Parameters InputFileChangeEventArgs e:
+    Returns:
+    */
+    private async Task uploadImage(InputFileChangeEventArgs e)
+    {
+        foreach (var imageFile in e.GetMultipleFiles(1))
+        {
+            var contentType = imageFile.ContentType;
+            string fileType = contentType.ToString().Substring(0, 5);
+            if (!fileType.Equals("image"))
+            {
+                imageUrl = "/images/images.png";
+                buffer = await System.IO.File.ReadAllBytesAsync("wwwroot/images/images.png");
+                warning = "Formato de foto incorrecto, asegurese que la foto se refleje en la página";
+                break;
+            }
+            var resizedFile = await imageFile.RequestImageFileAsync("image/png", 350, 350);
+            buffer = new byte[resizedFile.Size];
+            await resizedFile.OpenReadStream().ReadAsync(buffer);
+            warning = "";
+        }
+        myUser.Photo = buffer;
+    }
+}

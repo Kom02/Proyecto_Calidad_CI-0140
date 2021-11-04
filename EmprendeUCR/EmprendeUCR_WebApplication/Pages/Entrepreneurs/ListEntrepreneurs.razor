@@ -1,0 +1,58 @@
+﻿<h1>ListEntrepreneurs</h1>
+@page "/ListEntrepreneurs"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@inject EntrepreneurService EntrepreneurService
+
+<NavLink class="nav-link" href="AddEntrepreneur">
+    <span class="oi oi-plus" aria-hidden="true">Agregar Nuevo Emprendedor</span>
+</NavLink>
+
+
+@if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Nombre</th>
+                <th>Primer Apellido</th>
+                <th>Segundo Apellido</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _entrepreneurs)
+            {
+            <tr>
+                <td>@item.User_Email</td>
+                <td>@item.Presentation</td>
+
+                <td>
+                    <a class="nav-link" href="UpdateEntrepreneur/@item.User_Email">
+                        <span class="oi oi-pencil" aria-hidden="true">Edit</span>
+                    </a>
+                    <a class="nav-link" href="DeleteEntrepreneur/@item.User_Email">
+                        <span class="oi oi-trash" aria-hidden="true">Delete</span>
+                    </a>
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+@code {
+    private bool _isLoading = true;
+    private IList<Entrepreneur> _entrepreneurs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _entrepreneurs = await EntrepreneurService.GetAsync();
+        _isLoading = false;
+    }
+}

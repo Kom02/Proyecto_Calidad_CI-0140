@@ -1,0 +1,75 @@
+/* EmprendeUcr's site.ccs */
+@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+@import url('EmprendeUCR-template.css');
+
+/* 
+    Style rules for HTML Elements and body. It defines the type of characters 
+    to be used
+*/
+html , body {
+    font-family : 'Helvetica Neue' , Helvetica , Arial , sans-serif;
+}
+
+/* 
+    Style rules to be applied to anchor and button link elements. It applies a 
+    nice blue-toned color.
+*/
+a, .btn-link {
+    color : #0366d6;
+}
+
+/* 
+   Style rules for primay colors in a button. It defines color for a button's 
+   border and background.
+*/
+.btn-primary {
+    color : #fff;
+    background-color : #1b6ec2;
+    border-color : #1861ac;
+}
+
+.page {
+    width: 100%;
+}
+
+/* Style rule for .content. It moves the object a little bit away from its top. */
+.content {
+    padding-top : 1.1rem;
+}
+
+/* Style rule defined for objects under the .valid.modified effect. */
+.valid.modified:not([type=checkbox]) {
+    outline : 1px solid #26b050;
+}
+
+/* Style rule defined for objects marked as invalid. */
+.invalid {
+    outline : 1px solid red;
+}
+
+/* Style rule for objects marked as validation message */
+.validation-message {
+    color : red;
+}
+
+
+/* Style rules defined for error user interfaces from Blazor */
+#blazor-error-ui {
+    background : lightyellow;
+    bottom : 0;
+    box-shadow : 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display : none;
+    left : 0;
+    padding : 0.6rem 1.25rem 0.7rem 1.25rem;
+    position : fixed;
+    width : 100%;
+    z-index : 1000;
+}
+
+/* Style rules defined to dismiss error user interfaces from Blazor */
+#blazor-error-ui .dismiss {
+    cursor : pointer;
+    position : absolute;
+    right : 0.75rem;
+    top : 0.5rem;
+}

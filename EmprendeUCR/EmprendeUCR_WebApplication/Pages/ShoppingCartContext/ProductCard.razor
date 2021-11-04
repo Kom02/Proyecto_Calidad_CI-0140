@@ -1,0 +1,138 @@
+﻿@using EmprendeUCR_WebApplication.Domain.ShoppingCartContext.Entities
+@using EmprendeUCR_WebApplication.Domain.Core.CoreEntities
+
+<div class="w-90 row m-auto border-grey mb-5 position-relative">
+
+    <div class="col-3 align-self-center d-flex p-2">
+        <img src="@convertImageDisplay(shopLine)" width="200" height="200"/>
+    </div>
+
+    <div class="col-5 align-self-center d-flex justify-content-center">
+        @*
+            This line displays the product name,
+            retrieved from the Product_Name method
+            defined later in this file.
+        *@
+        <p class="m-auto ">@shopLine.product.ProductName</p>
+    </div>
+
+    <div class="col-2 align-self-center m-auto d-flex justify-content-center">
+
+        <div class="border-orange d-inline-flex align-items-center m-auto">
+            @* This line creates a button that allows users to decrease the number of products in their cart *@
+            <button class="border-none bg-white p-0" @onclick="() => Decrement_Quantity(shopLine)">
+                <span class="material-icons-outlined line-height-2 px-2">
+                    remove
+                </span>
+            </button>
+
+            <p class="mx-3">
+                @* This line displays the quantity of each product in the cart*@
+                @shopLine.Quantity
+            </p>
+            @* This line creates a button that allows users to increase the number of products in their cart *@
+            <button class="border-none bg-white p-0" @onclick="() => Increment_Quantity(shopLine)">
+                <span class="material-icons-outlined line-height-2 px-2">
+                    add
+                </span>
+            </button>
+        </div>
+
+    </div>
+    <div class="col-2 align-self-center">
+        <p class="m-auto text-center">
+            <span> ₡ </span>
+            @* Gets the total price of the quantity of each product in the cart *@
+            @(shopLine.product.currentPrice * shopLine.Quantity)
+        </p>
+    </div>
+    <div class="btn-corner mb-2 mx-4 w-10 float-right">
+        <button class="btn btn-outline-danger" @onclick="() => delete_product(shopLine)">Remover</button>
+    </div>
+</div>
+
+
+@code {
+
+    // 
+    //private int quantity = 1;
+
+    //Objects ShopLine as parameter to be used in the product card.
+    [Parameter]
+    public ShopLine shopLine { get; set; }
+
+    //EventCallback to call OnDeleteProduct method from shopping cart page.
+    [Parameter]
+    public EventCallback<ShopLine> OnDeleteProduct { get; set; }
+
+
+    //EventCallback to call UpdateQuantity method from shopping cart page.
+    [Parameter]
+    public EventCallback<ShopLine> IncrementQuantity { get; set; }
+
+    //EventCallback to call UpdateQuantity method from shopping cart page.
+    [Parameter]
+    public EventCallback<ShopLine> DecrementQuantity { get; set; }
+
+    /*
+      Summary: Method to increment the quantity of a said product and pass it to thhe shopping card page by the 
+      IncrementQuantity method.
+      Parameters: Method uses a ShopLine object to increase its amount.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task Increment_Quantity(ShopLine shopline)
+    {
+        shopLine.Quantity++;
+        await IncrementQuantity.InvokeAsync(shopline);
+    }
+
+    /*
+      Summary: Method to decrement the quantity of a said product and pass it to thhe shopping card page by the 
+      DecrementQuantity method.
+      Parameters: Method uses a ShopLine object to decrease its amount.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task Decrement_Quantity(ShopLine shopline)
+    {
+        if (shopLine.Quantity > 1)
+        {
+            shopLine.Quantity--;
+            await DecrementQuantity.InvokeAsync(shopline);
+        }
+    }
+
+    /*
+      Summary: Method to delete a product from the shopping cart.
+      Parameters: Method uses a ShopLine object to delete it.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected async Task delete_product(ShopLine shopline)
+    {
+        await OnDeleteProduct.InvokeAsync(shopline); // invocamos el metodo del padre y le mandamos el Code_ID
+    }
+
+    /*
+      Summary: Method used to fecth a product photo and display it by convertir the bytes objects to a solid image.
+      If no image is found, a default one is selected.
+      Parameters: Method uses a ShopLine object to get its photo.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private string convertImageDisplay(ShopLine shopLine)
+    {
+        var prodPhoto = shopLine.product.Product_Photos.FirstOrDefault();
+        var fs = "images/notfound.png";
+
+        if (prodPhoto != null)
+        {
+            var aux = prodPhoto.Photos;
+            var base64 = Convert.ToBase64String(aux);
+            fs = string.Format("data:image/jpg;base64,{0}", base64);
+        }
+
+        return fs;
+    }
+}

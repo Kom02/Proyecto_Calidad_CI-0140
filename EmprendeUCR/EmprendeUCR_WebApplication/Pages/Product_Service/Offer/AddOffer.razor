@@ -1,0 +1,616 @@
+﻿@page "/AddOffer"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using System
+@inject ProductService  ProductService
+@inject ServiceService  ServiceService
+@inject NavigationManager NavigationManager
+@inject EntrepreneurService EntrepreneurService
+@inject Product_ServiceService Product_ServiceService
+@inject OfferService OfferService
+@inject Is_OfferService Is_OfferService
+@inject Alliance_Service allianceService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+<h3>Crear Oferta</h3>
+<body>
+    <!--Mostrar Productos y servicios de aliados-->
+    <div class="form-check form-switch m-lg-3">
+        <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" unchecked @onchange="@displayAlliesProductsAndServices">
+        <label class="form-check-label" for="flexSwitchCheckDefault">Mostrar productos y servicios de aliados </label>
+    </div>
+    <!-- Mis productos -->
+
+    <section class="w-25 float_left border-1 shadow">
+        <h4 class="bg-blue text-center "> Mis productos </h4>
+        <table class="m-lg-2">
+            <thead>
+                <!--Colmun names tag (Nombre, Precio)-->
+                <tr>
+                    <th width="200" valign="middle" align="center">Nombre</th>
+                    <th width="150" valign="middle" align="center">Precio</th>
+                </tr>
+            </thead>
+            <!--If there are services related to the current entrepreneur, display them to the user-->
+            <tbody>
+                @if (_products?.Count > 0)
+                {
+                    @foreach (var currentProduct in _products)
+                    {
+                        <tr>
+                            <!--Product name value-->
+                            <td width="200" valign="middle" align="left">@currentProduct.Product_Name</td>
+                            <!--Product price value-->
+                            <td width="150" valign="middle" align="left">@currentProduct.Price</td>
+                            <!--Add to the current offer button-->
+                            <td>
+                                <button class="w-150 btn-primary m-2 material-icons align-right" type="button" @onclick="() => addProductToOffer(currentProduct.Code_ID, true)">add</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table><br />
+
+
+        <!-- Mis servicios-->
+
+        <h4 class="bg-blue text-center"> Mis servicios </h4>
+        <table class="m-lg-2">
+            <!--Colmun names tag (Nombre, Precio por hora)-->
+            <thead>
+                <tr>
+                    <th width="200" valign="middle" align="center">Nombre</th>
+                    <th width="100" valign="middle" align="center">Precio por hora</th>
+                </tr>
+            </thead>
+            <!--If there are services related to the current entrepreneur, display them to the user-->
+            <tbody>
+                @if (_service?.Count > 0)
+                {
+                    @foreach (var currentService in _service)
+                    {
+                        <tr>
+                            <!--Service name value-->
+                            <td width="200" valign="middle" align="left">@currentService.Service_Name</td>
+                            <!--Service Price per hour value-->
+                            <td width="150" valign="middle" align="left">@currentService.Price_per_hour</td>
+                            <!--Add to the current offer button-->
+                            <td>
+                                <button class="w-150 btn-primary m-2 material-icons align-right " type="button" @onclick="() => addServiceToOffer(currentService.Code_ID, true)">add</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <!--Aliados-->
+        @if (showAlliesProductAndServices)
+        {
+            <!--Productos-->
+            <h4 class="bg-blue text-center "> Productos de aliados </h4>
+            <table class="m-lg-2">
+                <thead>
+                    <!--Colmun names tag (Nombre, Precio)-->
+                    <tr>
+                        <th width="200" valign="middle" align="center">Nombre</th>
+                        <th width="150" valign="middle" align="center">Precio</th>
+                    </tr>
+                </thead>
+                <!--If there are services related to the current entrepreneur, display them to the user-->
+                <tbody>
+                    @if (_products?.Count > 0)
+                    {
+                        @foreach (var currentProduct in alliedProducts)
+                        {
+                            <tr>
+                                <!--Product name value-->
+                                <td width="200" valign="middle" align="left">@currentProduct.Product_Name</td>
+                                <!--Product price value-->
+                                <td width="150" valign="middle" align="left">@currentProduct.Price</td>
+                                <!--Add to the current offer button-->
+                                <td>
+                                    <button class="w-150 btn-primary m-2 material-icons align-right" type="button" @onclick="() => addProductToOffer(currentProduct.Code_ID, false)">add</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table><br />
+
+            <!-- Mis servicios-->
+            <h4 class="bg-blue text-center"> Servicios de aliados </h4>
+            <table class="m-lg-2">
+                <!--Colmun names tag (Nombre, Precio por hora)-->
+                <thead>
+                    <tr>
+                        <th width="200" valign="middle" align="center">Nombre</th>
+                        <th width="100" valign="middle" align="center">Precio por hora</th>
+                    </tr>
+                </thead>
+                <!--If there are services related to the current entrepreneur, display them to the user-->
+                <tbody>
+                    @if (_service?.Count > 0)
+                    {
+                        @foreach (var currentService in alliedServices)
+                        {
+                            <tr>
+                                <!--Service name value-->
+                                <td width="200" valign="middle" align="left">@currentService.Service_Name</td>
+                                <!--Service Price per hour value-->
+                                <td width="150" valign="middle" align="left">@currentService.Price_per_hour</td>
+                                <!--Add to the current offer button-->
+                                <td>
+                                    <button class="w-150 btn-primary m-2 material-icons align-right " type="button" @onclick="() => addServiceToOffer(currentService.Code_ID, false)">add</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+        <div class="row">
+            <div class="form-group">
+                <input type="button" class="btn btn-primary text-center m-2" @onclick="@Cancel" value="Volver" />
+            </div>
+        </div>
+    </section>
+    <!-- Productos en la oferta -->
+    <aside class="float_right  w-70 gap-lg-2">
+        <div class="row border-2 shadow">
+            <h4 class="bg-blue text-center">Productos o servicios en la oferta</h4>
+            <!--Product and services in the offer display-->
+            <table class="m-lg-2">
+                <!-- Colmun names tag (Nombre, Precio)-->
+                <thead>
+                    <tr>
+                        <th width="10" valign="middle" align="center">Nombre</th>
+                        <th width="10" valign="middle" align="center">Precio</th>
+                    </tr>
+                </thead>
+                <!--Load the products and services added to the current offer-->
+                <tbody>
+                    <!--Check if there are products in the offer, if yes then display them to the user-->
+                    @if (_addedProducts?.Count > 0)
+                    {
+                        <!--Display the products added to the offer-->
+                        @foreach (var currentProduct in _addedProducts)
+                        {
+                            <tr>
+                                <!--Product name value-->
+                                <td style="width:40%">@currentProduct.Product_Name</td>
+                                <!--Product price value-->
+                                <td style="width:40%">@currentProduct.Price</td>
+                                <!--Remove from the offer button-->
+                                <td>
+                                    <button class="btn-secondary mb-2 material-icons-outlined " type="button" @onclick="() => removeProductFromOffer(currentProduct.Code_ID)">delete</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    <!--Check if there are services in the offer, if yes then display them to the user-->
+                    @if (_addedServices?.Count > 0)
+                    {
+                        <!--Display the services added to the offer-->
+                        @foreach (var currentService in _addedServices)
+                        {
+                            <tr>
+                                <!--Service name value-->
+                                <td style="width:40%">@currentService.Service_Name</td>
+                                <!--Service price per hour value-->
+                                <td style="width:40%">@currentService.Price_per_hour</td>
+                                <!--Remove from the offer button-->
+                                <td>
+                                    <button class="btn-secondary mb-2 material-icons-outlined " type="button" @onclick="() => removeServiceFromOffer(currentService.Code_ID)">delete</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+
+
+            @if (myProductsAndServicesCount == 0 && alliedProductsAndServicesCount > 0)
+            {
+                showConfirmation = false;
+                <p> Por favor agregar al menos un producto o servicio propio :)</p>
+            }
+            <!--If there are products or services in the current offer, displays the confirmation button so that the user can proceed to-->
+            <!--fill the offer details-->
+            @if ((_addedProducts?.Count > 0 || _addedServices?.Count > 0) && !showConfirmation && !(myProductsAndServicesCount == 0 && alliedProductsAndServicesCount > 0))
+            {
+                <input type="button" class="btn btn-primary w-30" @onclick="@confirmOffer" value="Confirmar" />
+            }
+
+            @if (showConfirmation)
+            {
+                <EditForm EditContext="editContext" OnValidSubmit="@onCreateOffer">
+                    <DataAnnotationsValidator />
+                    <div id="FormOfferDetails" class="form-group">
+                        <!--Form to let the user choose the initial date for the offer (by default will be todays date)-->
+                        <div class="form-group">
+                            <label for="Initial_Date" class="control-label">Fecha de inicio de oferta</label>
+                            <ValidationMessage For=@(() => offer.Initial_Date) />
+                            <input type="date" min="@DateTime.Now" class="form-control w-20" @bind="@initialDateInput" required />
+                        </div>
+
+                        <!--Form to let the user choose the expire date for the offer (by default will be todays date)-->
+                        <div class="col px-mb-3">
+                            <label for="Expire_Date" class="control-label">Fecha de fin de oferta</label>
+                            <ValidationMessage For=@(() => offer.Expire_Date) />
+                            <input type="date" min="@DateTime.Now" class="form-control w-20" @bind="@expireDateInput" required />
+                        </div>
+
+                        <!--Form to let the user choose the description of the offer-->
+                        <div class="mb-3">
+                            <label for="Offer_Description" class="control-label">Descripción</label>
+                            <ValidationMessage For=@(() => offer.Offer_Description) />
+                            <textarea rows="3" form="Offer_Description" class=" form-control w-30" @bind="@offer.Offer_Description" />
+                        </div>
+
+                        <!--Display of the total amount of the products and services in the offer-->
+                        <div>
+                            <h5>Suma total del precio original de productos = @totalPriceFromListedProductsAndServicesInOffer</h5>
+                        </div>
+
+                        <!--Form to let the user choose the new price of the offer-->
+                        <div class="col mb-3">
+                            <label for="Price" class="control-label">Nuevo precio de oferta (CRC)</label>
+                            <ValidationMessage For=@(() => offer.Discount) />
+                            <input form="Price" type="number" class="form-control w-10" @bind-value="@offer.Discount" required />
+                        </div>
+
+                        <!--Check if the data provided by the user is ok, if yes then displays the button to save the offer-->
+                        <input type="submit" class="btn btn-primary" value="Guardar oferta" />
+
+
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </aside>
+    <div>
+        <h4 id="error" hidden="@hideError">Informacion incompleta.</h4>
+    </div>
+</body>
+
+@code
+{
+    private EditContext editContext;
+    private ValidationMessageStore messageStore;
+
+    // The offer that will be store in the DB
+    Offer offer = new Offer();
+    // A list with the Entrepreneurs (used to filter the products/services) -> this (simulates) must be the logged user
+    IList<Entrepreneur> entrepreneurs;
+    // A list with all the products from the logged Entrepreneur
+    IList<Product> _products;
+    // A list with all the services from the logged Entrepreneur
+    IList<Service> _service;
+    // Allied products
+    IList<Product> alliedProducts = new List<Product>();
+    // Allied services
+    IList<Service> alliedServices = new List<Service>();
+    // A list with the added products in the current offer
+    IList<Product> _addedProducts = new List<Product>();
+    // A list with the added services in the current offer
+    IList<Service> _addedServices = new List<Service>();
+    // my products or services in offer count
+    int myProductsAndServicesCount = 0;
+    // allied products or services in offer count
+    int alliedProductsAndServicesCount = 0;
+
+    // Variable that hides the infomration error
+    bool hideError = true;
+    // Variable used to display or not the confirmation button
+    bool showConfirmation = false;
+    // Variable used to display or not the product or services of the allies
+    bool showAlliesProductAndServices = false;
+    // The sum of the total price of the products and services added to the offer
+    int totalPriceFromListedProductsAndServicesInOffer = 0;
+    // The initial date of the offer (by default: today)
+    System.DateTime FirstinitialDateInput = DateTime.Now;
+    System.DateTime initialDateInput = DateTime.Now;
+    // The expire date of the offer (by default: today)
+    System.DateTime expireDateInput = DateTime.Now;
+    // Stores the email of the user logged
+    String userLogged = "";
+
+    // Method to altern the signal to show or not de product and services form the allies
+    public void displayAlliesProductsAndServices()
+    {
+        showAlliesProductAndServices = !showAlliesProductAndServices;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new(offer);
+        editContext.OnValidationRequested += HandleValidationRequested;
+        messageStore = new(editContext);
+
+        entrepreneurs = await EntrepreneurService.GetAsync();
+        userLogged = await sessionStorage.GetItemAsync<string>("Email");
+
+        await loadAllProducts(userLogged, allianceService.getAlliancesByEntrepreneurEmailAndStatus(userLogged,1));
+    }
+
+    private void HandleValidationRequested(object sender, ValidationRequestedEventArgs args)
+    {
+        messageStore.Clear();
+
+        // Custom validation logic
+        if (initialDateInput < FirstinitialDateInput)
+        {
+            messageStore.Add(() => offer.Initial_Date, "La fecha de creacion debe ser igual o mayor que la fecha de hoy.");
+        }
+        // If the initial date input is greater than the expire date
+        if (initialDateInput > expireDateInput)
+        {
+            messageStore.Add(() => offer.Expire_Date, "La fecha de final de oferta debe ser mayor a la fecha de inicio.");
+        }
+
+        // Discount validations
+
+        // If the discount is negative or is empty
+        if (offer.Discount <= 0 || String.IsNullOrEmpty(offer.Discount.ToString()))
+        {
+            messageStore.Add(() => offer.Discount, "El precio nuevo de la oferta debe ser mayor que 0.");
+        }
+        // If the discount is greater than the sum of the products and services from the offer
+        if (offer.Discount > totalPriceFromListedProductsAndServicesInOffer)
+        {
+            messageStore.Add(() => offer.Discount, "El precio nuevo de la oferta debe ser menor que la suma total de los productos o servicios.");
+        }
+    }
+
+    // Add the product with the same id to the current offer
+    public void addProductToOffer(int productId, bool myItem)
+    {
+        // Find the product with the same product_id
+        Product productFound;
+        if (myItem)
+        {
+            productFound = _products.First(product => product.Code_ID == productId);
+            myProductsAndServicesCount++;
+        }
+        else
+        {
+            productFound = alliedProducts.First(product => product.Code_ID == productId);
+            alliedProductsAndServicesCount++;
+        }
+        // If found, then added to the added products
+        if (productFound is not null)
+        {
+            _addedProducts.Add(productFound);
+        }
+        // update the show confirmation offer
+        showConfirmation = false;
+    }
+
+    // Remove the product with the same id from the current offer
+    public void removeProductFromOffer(int productId)
+    {
+        // Updates the total price
+        getTotalPriceFromListedProductsInOffer();
+        // Update the show confirmation button signal
+        showConfirmation = false;
+        // Find the product with the same product_id var productFoundInMyProducts =_products.Find(product => product.Code_ID == productId);
+
+        var productFoundInMyProducts = _products.Find(product => product.Code_ID == productId);
+        if (productFoundInMyProducts)
+        {
+            myProductsAndServicesCount--;
+        }
+        else
+        {
+            alliedProductsAndServicesCount--;
+        }
+        Product productFound = productFoundInMyProducts ? _products.First(product => product.Code_ID == productId) : alliedProducts.First(product => product.Code_ID == productId);
+        // Remove the product found from the added products
+        if (productFound is not null)
+        {
+            _addedProducts.Remove(productFound);
+        }
+    }
+
+    // Add the service with the same id to the current offer
+    public void addServiceToOffer(int serviceId, bool myItem)
+    {
+        // Find the service with the same serviceId
+        Service serviceFound;
+        if (myItem)
+        {
+            serviceFound = _service.First(service => service.Code_ID == serviceId);
+            myProductsAndServicesCount++;
+        }
+        else
+        {
+            serviceFound = alliedServices.First(service => service.Code_ID == serviceId);
+            alliedProductsAndServicesCount++;
+        }
+        // If found, then added to the added services
+        if (serviceFound is not null)
+        {
+            _addedServices.Add(serviceFound);
+        }
+        // update the show confirmation offer
+
+        showConfirmation = false;
+    }
+
+    // Remove the service with the same id from the current offer
+    public void removeServiceFromOffer(int serviceId)
+    {
+        // Updates the total price
+        getTotalPriceFromListedProductsInOffer();
+        // update the show confirmation offer
+        showConfirmation = false;
+        // Find the service with the same serviceId
+        Service serviceFound;
+
+        var serviceFoundInMyProducts = _service.Find(service => service.Code_ID == serviceId);
+        if (_service.Find(service=> service.Code_ID == serviceId))
+        {
+            serviceFound = _service.First(service => service.Code_ID == serviceId);
+            myProductsAndServicesCount--;
+        } else
+        {
+            serviceFound = alliedServices.First(service => service.Code_ID == serviceId);
+            alliedProductsAndServicesCount--;
+        }
+        // Remove the service found from the added services
+        if (serviceFound is not null)
+        {
+            _addedServices.Remove(serviceFound);
+        }
+    }
+
+    // Calculate the sum of the products and services added to the current offer
+    protected void getTotalPriceFromListedProductsInOffer()
+    {
+        // Reset the total price
+        totalPriceFromListedProductsAndServicesInOffer = 0;
+
+        // Sum the products prices to the total
+        foreach (var product in _addedProducts)
+        {
+            totalPriceFromListedProductsAndServicesInOffer += product.Price;
+        }
+
+        // Sum the service prices to the total
+        foreach (var service in _addedServices)
+        {
+            totalPriceFromListedProductsAndServicesInOffer += service.Price_per_hour;
+        }
+    }
+
+
+    protected async void onCreateOffer()
+    {
+        offer.Initial_Date = initialDateInput;
+        offer.Expire_Date = expireDateInput;
+
+        int idToInsert = await OfferService.InsertOfferAsync(offer);
+        IList<Is_Offer> Is_offerList = new List<Is_Offer>();
+        int aux_cont = 0;
+        // Make is_offer products
+        foreach (var product in _addedProducts)
+        {
+            Is_Offer is_offer_toInsert = new Is_Offer();
+            is_offer_toInsert.Offer_ID = idToInsert;
+            is_offer_toInsert.Code_ID = product.Code_ID;
+            is_offer_toInsert.Category_ID = product.Category_ID;
+            is_offer_toInsert.User_Email = product.Entrepreneur_Email;
+            is_offer_toInsert.Amount = 1;
+            Is_offerList.Insert(aux_cont, is_offer_toInsert);
+            aux_cont++;
+        }
+        // Make is_offer service
+        foreach (var service in _addedServices)
+        {
+            Is_Offer is_offer_toInsert = new Is_Offer();
+            is_offer_toInsert.Offer_ID = idToInsert;
+            is_offer_toInsert.Code_ID = service.Code_ID;
+            is_offer_toInsert.Category_ID = service.Category_ID;
+            is_offer_toInsert.User_Email = service.Entrepreneur_Email;
+            is_offer_toInsert.Amount = 1;
+            Is_offerList.Insert(aux_cont, is_offer_toInsert);
+            aux_cont++;
+        }
+
+        // Clean duplicated items
+        Is_offerList = checkDuplicatedItems(Is_offerList);
+
+        // Add Is_offer's to the DataBase
+        foreach (var is_offerToAdd in Is_offerList)
+        {
+            await Is_OfferService.InsertIs_OfferAsync(is_offerToAdd);
+        }
+
+        NavigationManager.NavigateTo("Offers");
+    }
+    // Check from the given list, if there are duplicated items. If yes, remove the duplicated and then increase the amount
+    // of the original item by one (for each duplicated)
+    // Return the original list modified (with no duplicates)
+    public IList<Is_Offer> checkDuplicatedItems(IList<Is_Offer> listOfItemsInOffer)
+    {
+        for (int actualOfferIndex = 0; actualOfferIndex < listOfItemsInOffer.Count(); actualOfferIndex++)
+        {
+            for (int checkDuplicated = actualOfferIndex + 1; checkDuplicated < listOfItemsInOffer.Count(); checkDuplicated++)
+            {
+                // Check if the current is_offer is duplicated in the list
+                if (listOfItemsInOffer.ElementAt(actualOfferIndex).Code_ID == listOfItemsInOffer.ElementAt(checkDuplicated).Code_ID)
+                {
+                    // If is duplicated, then increase the amount by one, and then delete the duplicated is_offer
+                    listOfItemsInOffer.ElementAt(actualOfferIndex).Amount++;
+                    listOfItemsInOffer.RemoveAt(checkDuplicated);
+
+                    checkDuplicated--;
+                }
+            }
+        }
+
+        return listOfItemsInOffer;
+    }
+
+    // Updates the total price and then display the confirmation
+    protected void confirmOffer()
+    {
+        getTotalPriceFromListedProductsInOffer();
+        showConfirmation = true;
+    }
+
+    // Return to the ListProduct page
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("Offers");
+    }
+
+    // Load all the products, services, and productService related to the email
+    public async Task loadAllProducts(String email, IList<Alliance> alliances)
+    {
+        List<String> alliedEmails = new List<String>();
+        // Get the other allies emails
+        foreach (var allie in alliances)
+        {
+            alliedEmails.Add(allie.Ally_User_Email != email ? allie.Ally_User_Email : allie.User_Email);
+        }
+        loadAlliedProductsAndServices(alliedEmails);
+        await loadProducts(email);
+        await loadService(email);
+    }
+
+    // Load the products related to the given entrepreneur email
+    public async Task loadProducts(String email)
+    {
+        _products = await ProductService.GetProductsEntrepreneurAsync(email);
+    }
+
+    public void loadAlliedProductsAndServices(List<String> emails)
+    {
+        // Load allies
+        foreach (var allie in emails)
+        {
+            var allieProducts = ProductService.GetProductsEntrepreneur(allie);
+            // For each allies product, addit to the alliesProducts
+            foreach(var allieProduct in allieProducts)
+            {
+                alliedProducts.Add(allieProduct);
+            }
+            // Add each service to the list
+            var allieServices = ServiceService.GetServicesEntrepreneur(allie);
+            foreach(var allieService in allieServices)
+            {
+                alliedServices.Add(allieService);
+            }
+        }
+    }
+
+    // Load the service related to the given entrepreneur email
+    public async Task loadService(String email)
+    {
+        _service = await ServiceService.GetServicesEntrepreneurAsync(email);
+    }
+
+}

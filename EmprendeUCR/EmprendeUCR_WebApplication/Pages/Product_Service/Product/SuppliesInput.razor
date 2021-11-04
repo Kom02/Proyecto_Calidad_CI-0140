@@ -1,0 +1,135 @@
+﻿@page "/SuppliesInput"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using System.IO
+@using BlazorInputFile
+@using Syncfusion.Blazor.TreeGrid;
+@inject ProductService  productService
+@inject NavigationManager NavigationManager
+@inject Product_ServiceService Product_ServiceService
+@inject EmprendeUCR_WebApplication.Data.Services.Categories.CategoryService CategoryService
+@inject Product_PhotosService Product_PhotosService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+<div class=" border-1 shadow">
+    <h3 class="bg-blue text-center">Insumos</h3>
+
+    <div class="m-lg-4">
+        <button class="btn btn-primary control-label m-lg-2" @onclick="Show">Seleccionar insumos</button>
+    </div>
+
+    <ul style="margin:20px">
+        @for (int i = 0; i < selectedCategories.Count; i++)
+        {
+            Category item = selectedCategories[i];
+            if (item != null)
+            {
+
+                <li class="row" style="list-style-type:none;" @key="item.Id" tabindex="1">
+
+                    <span class="col-4">@item.Title</span>
+
+                </li>
+            }
+            else
+            {
+                <li>NULL??</li>
+            }
+        }
+    </ul>
+    @if (ShowDialog)
+    {
+
+        <div class="modal fade show d-block" id="exampleModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="titleLabel">Seleccione insumos</h5>
+                        <button type="button" class="close" @onclick="@Close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">X</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <SfTreeGrid ID="TreeGrid" @ref="TreeGrid" AllowSorting="true" DataSource="@categories" IdMapping="Id" ParentIdMapping="ParentId" AllowSelection="true" TreeColumnIndex="0">
+                            <TreeGridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple"></TreeGridSelectionSettings>
+                            <TreeGridEvents DataBound="OnDataBound" TValue="Category" RowSelected="SelectionHandler"></TreeGridEvents>
+                            <TreeGridSortSettings>
+                                <TreeGridSortColumns>
+                                    <TreeGridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></TreeGridSortColumn>
+                                </TreeGridSortColumns>
+                            </TreeGridSortSettings>
+                            <TreeGridColumns>
+                                <TreeGridColumn Field="Title" HeaderText="Nombre" Width="100"></TreeGridColumn>
+                                <TreeGridColumn Field="Description" HeaderText="Descripción" Width="160"></TreeGridColumn>
+                            </TreeGridColumns>
+                        </SfTreeGrid>
+
+                        <button type="submit" class="btn btn-primary" @onclick="@Close">Guardar seleccion</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <br />
+
+</div>
+
+@code
+{
+
+    //TreeGrid of categories
+    SfTreeGrid<Category> TreeGrid { get; set; }
+
+    // Whether to show dialog or not
+    Boolean ShowDialog = false;
+    // List of all categories
+    IList<Category> categories;
+    List<Category> selectedCategories = new List<Category>();
+    List<double> selectedIndexes = new List<double>();
+
+    [Parameter] public EventCallback<List<HasSupplies>> OnSuppliesUpdated { get; set; }
+    [Parameter] public List<HasSupplies> supplies { get; set; }
+
+    // Gets called when page first loads.
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await CategoryService.GetAsync();
+        if(supplies.Count > 0)
+        {
+
+        }
+    }
+
+    //SelectionHandler row selected
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Category> args)
+    {
+        selectedCategories = await this.TreeGrid.GetSelectedRecords();
+        selectedIndexes = await this.TreeGrid.GetSelectedRowIndexes();
+        supplies = new List<HasSupplies>();
+        foreach(var cat in selectedCategories)
+        {
+            HasSupplies sup = new HasSupplies();
+            sup.Supplie_ID = cat.Id;
+            supplies.Add(sup);
+        }
+        OnSuppliesUpdated.InvokeAsync(supplies);
+    }
+
+    public void OnDataBound(object args)
+    {
+        // The filtered index values are selected
+        this.TreeGrid.SelectRows(selectedIndexes);
+    }
+
+    public void Show()
+    {
+        ShowDialog = true;
+
+    }
+    public void Close()
+    {
+        ShowDialog = false;
+    }
+
+}

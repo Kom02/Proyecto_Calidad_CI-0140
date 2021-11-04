@@ -1,0 +1,214 @@
+﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+
+.sidebar1 .acount-links {
+    padding-right: 2%;
+}
+
+.sidebar1 .logo1 {
+    margin-left: 280px;
+}
+
+.content2 a, .btn-link {
+    color: #0366d6;
+}
+
+.content2 .btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+app {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.content2 .top-row2 {
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.main2 {
+    flex: 1;
+}
+
+    .main2 .top-row2 {
+        background-color: #f7f7f7;
+        border-bottom: 1px solid #d6d5d5;
+        justify-content: flex-end;
+    }
+
+        .main2 .top-row2 > a, .main2 .top-row2 .btn-link {
+            white-space: nowrap;
+            margin-left: 1.5rem;
+        }
+
+        .main2 .top-row2 a:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+.navbar2 {
+    justify-content: center;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+}
+
+.sidebar2 {
+    background-image: linear-gradient(180deg, rgb(5, 39, 103) 100%, #3a0647 00%);
+}
+
+    .sidebar2 .top-row2 {
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .sidebar2 .navbar-brand2 {
+        font-size: 1.1rem;
+        color: #fff;
+    }
+
+    .sidebar2 .oi {
+        width: 2rem;
+        font-size: 1.1rem;
+        vertical-align: text-top;
+        top: -2px;
+    }
+
+    .sidebar2 .nav-item {
+        font-size: 0.9rem;
+        padding-bottom: 0.5rem;
+    }
+
+        .sidebar2 .nav-item:first-of-type {
+            padding-top: 1rem;
+        }
+
+        .sidebar2 .nav-item:last-of-type {
+            padding-bottom: 1rem;
+        }
+
+        .sidebar2 .nav-item a {
+            color: #d7d7d7;
+            border-radius: 4px;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            line-height: 3rem;
+        }
+
+            .sidebar2 .nav-item a.active {
+                background-color: rgba(255,255,255,0.25);
+                color: white;
+            }
+
+            .sidebar2 .nav-item a:hover {
+                background-color: rgba(255,255,255,0.1);
+                color: white;
+            }
+
+.content2 {
+    padding-top: 7%;
+}
+
+.navbar-toggler2 {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+.sidebar1 .head1 {
+    height: 75px;
+    width: 100%;
+    background-color: #145DA2;
+    position: absolute;
+    padding: 30px;
+}
+
+.color-white:hover {
+    color:white;
+}
+
+@media (max-width: 767.98px) {
+    .main2 .top-row2:not(.auth) {
+        display: none;
+    }
+
+    .main2 .top-row2.auth {
+        justify-content: space-between;
+    }
+
+    .main2 .top-row2 a, .main2 .top-row2 .btn-link {
+        margin-left: 0;
+    }
+
+    .sidebar1 {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) {
+    app {
+        flex-direction: row;
+    }
+
+    .sidebar2 {
+        width: 250px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+    }
+
+    .main2 .top-row2 {
+        position: sticky;
+        top: 0;
+    }
+
+    .main2 > div {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
+    }
+
+    .navbar-toggler2 {
+        display: none;
+    }
+
+    .sidebar2 .collapse {
+        /* Never collapse the sidebar2 for wide screens */
+        display: block;
+    }
+}

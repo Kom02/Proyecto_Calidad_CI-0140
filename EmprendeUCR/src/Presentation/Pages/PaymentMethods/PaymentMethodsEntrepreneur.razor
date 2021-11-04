@@ -1,0 +1,116 @@
+﻿@*Para esta actividad supervisada se va a trabajar en la historia de usuario
+    PIIB12021-336: Be able to add payment methods to my profile
+    Se van a trabajar las siguientes tareas:
+    Link the functionality to an interface
+    Check from an interface the available payment methods that the entrepreneurs
+    can add*@
+
+@page "/entrepreneur_payment_methods"
+@page "/entrepreneur_payment_methods/{emailToRegister}"
+
+@using EmprendeUCR.Application.PaymentInfos;
+@using EmprendeUCR.Application.PaymentMethods;
+@using EmprendeUCR.Domain.PaymentInfos.Entities;
+@using EmprendeUCR.Domain.PaymentMethods.Entities;
+@inject IHasPaymentInfoService HasPaymentInfoService
+@inject ISinpeIbanPaymentMethodService SinpeIbanPaymentMethodService
+@inject ISinpeMovilPaymentMethodService SinpeMovilPaymentMethodService
+@inject ICardPaymentMethodService CardPaymentMethodService
+@inject NavigationManager NavigationManager
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@if (_isLoading)
+{
+    <p>Cargando</p>
+}
+else
+{
+    <div class="grid-container">
+        <div class="grid-item">
+            <EmprendeUCR.Presentation.Pages.PaymentInfos.SinpeMovil.SinpeMovilPaymentInfoEntrepreneur emailToRegister=@emailToRegister list=@list paymentMethod=@SinpeMovilPaymentMethod />
+        </div>
+        <div class="grid-item">
+            <EmprendeUCR.Presentation.Pages.PaymentInfos.SinpeIban.SinpeIbanPaymentInfoEntrepreneur emailToRegister=@emailToRegister list=@list paymentMethod=@SinpeIbanPaymentMethod />
+        </div>
+        <div class="grid-item">
+            <EmprendeUCR.Presentation.Pages.PaymentInfos.Card.CardPaymentInfoEntrepreneur emailToRegister=@emailToRegister list=@list paymentMethods=@CardPaymentMethods />
+        </div>
+
+    </div>
+    <div class="my-3">
+        @if (!string.IsNullOrEmpty(@buttonMessage))
+        {
+            <center>
+                <button @onclick="finish" class="btn btn-primary marginButton">@buttonMessage</button>
+            </center>
+        }
+    </div>
+
+    <style>
+        .grid-container {
+            display: grid;
+            grid-template-columns: auto auto;
+            padding: 10px;
+            align-content: start;
+        }
+
+        .grid-item {
+            padding: 10px;
+        }
+    </style>
+}
+@code
+{
+    bool _isLoading = true;
+
+    [Parameter]
+    public string emailToRegister { get; set; } = string.Empty;
+    private string buttonMessage = string.Empty;
+    public List<HasPaymentInfo> list { get; set; } = new();
+    private SinpeIbanPaymentMethod? SinpeIbanPaymentMethod = null;
+    private SinpeMovilPaymentMethod? SinpeMovilPaymentMethod = null;
+    private List<CardPaymentMethod>? CardPaymentMethods = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(emailToRegister))
+        {
+            buttonMessage = "Finalizar";
+            _isLoading = false;
+        }
+        else
+        {
+            string Email = await sessionStorage.GetItemAsync<string>("Email");
+            int Type = await sessionStorage.GetItemAsync<int>("Type");
+            list = await HasPaymentInfoService.getHasPaymentInfoByEmail(Email);
+            SinpeIbanPaymentMethod = await SinpeIbanPaymentMethodService.GetPaymentMethodByIdAsync("SINPE");
+            SinpeMovilPaymentMethod = await SinpeMovilPaymentMethodService.GetPaymentMethodByIdAsync("SINPE Movil");
+            CardPaymentMethod visaPM = await CardPaymentMethodService.GetPaymentMethodByIdAsync("Visa");
+            CardPaymentMethods.Insert(0,visaPM);
+            CardPaymentMethod masterCardPM = await CardPaymentMethodService.GetPaymentMethodByIdAsync("Mastercard");
+            CardPaymentMethods.Insert(0,masterCardPM);
+            CardPaymentMethod amexPM = await CardPaymentMethodService.GetPaymentMethodByIdAsync("American Express");
+            CardPaymentMethods.Insert(0,amexPM);
+
+            if (Email == null)
+            {
+                NavigationManager.NavigateTo("/Login");
+            }
+            if (Type != 2)
+            {
+                NavigationManager.NavigateTo("/Login");
+            }
+
+            else
+            {
+                _isLoading = false;
+            }
+        }
+
+    }
+
+    private async void finish()
+    {
+        NavigationManager.NavigateTo("/Login");
+    }
+}

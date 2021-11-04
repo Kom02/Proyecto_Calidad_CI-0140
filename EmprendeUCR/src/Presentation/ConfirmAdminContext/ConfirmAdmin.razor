@@ -1,0 +1,177 @@
+﻿@page "/activeAdministrator"
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Domain.RegisterContext.Entities
+@using EmprendeUCR.Application.RegisterContext
+@using Microsoft.AspNetCore.WebUtilities
+@using EmprendeUCR.Application.ConfirmAdminContext
+
+@inject IConfirmAdminService ConfirmAdminService
+@inject NavigationManager uriHelper
+@if (cargando)
+{
+    <h3>Cargando...</h3>
+}
+else
+{
+    @if (administrators.Count > 0)
+    {
+        <h3 class="tittle">Solicitudes de nuevos administradores:</h3>
+        <div class="solicitudes">
+            @foreach (var administrador in administrators)
+            {
+                <div class="solicitudAdmin border-blue">
+
+                    <div class="datosPrincipales">
+                        <div class="display-row">
+                            <p class="secondary_title">Email:&nbsp; </p>
+                            <p>@administrador.Email</p>
+                        </div>
+
+                        <div class="display-row">
+                            <p class="secondary_title">Fecha de solicitud:&nbsp;</p>
+                            <p>@(administrador.Creation_Date.ToShortDateString())</p>
+                        </div>
+                    </div>
+
+                    <div class="display-row">
+                        <!-- Button trigger modal -->
+                        <button type="button" class="btn btn-secondary botonDatos" @onclick="_ =>detallesAdministrador(administrador)" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                            Detalles
+                        </button>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="exampleModalLabel">Detalles del registro del administrador:</h5>
+                                        <button type="button" class="btn-close" @onclick="_ =>changeState()" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        @if (cargandoDatos)
+                                        {
+                                            <p>cargando...</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="display-row espacioArriba">
+                                                <p class="secondary_title">Nombre:&nbsp;</p>
+                                                <p>@posibleAdmin.Name</p>
+                                            </div>
+
+                                            <div class="display-row espacioArriba">
+                                                <p class="secondary_title">Primer Apellido:&nbsp;</p>
+                                                <p>@posibleAdmin.F_Last_Name</p>
+                                            </div>
+
+                                            <div class="display-row espacioArriba">
+                                                <p class="secondary_title">Segundo Apellido:&nbsp;</p>
+                                                <p>@posibleAdmin.S_Last_Name</p>
+                                            </div>
+
+                                            <div class="display-row espacioArriba">
+                                                <p class="secondary_title">Email:&nbsp;</p>
+                                                <p>@posibleAdmin.Email</p>
+                                            </div>
+
+                                            <div class="display-row espacioArriba">
+                                                <p class="secondary_title">Fecha de nacimiento:&nbsp;</p>
+                                                <p>@(posibleAdmin.Birth_Date.ToShortDateString())</p>
+                                            </div>
+
+                                            <div class="display-col espacioArriba">
+                                                <p class="secondary_title espacioArriba">Foto de perfil:&nbsp;</p>
+                                                <img src="data:image;base64,@System.Convert.ToBase64String(posibleAdmin.Photo)" class="userImage" />
+                                            </div>
+                                        }
+                                    </div>
+                                    <hr />
+                                    <center>
+                                        <button type="button" class="btn btn-secondary botonClose" @onclick="_ =>changeState()" data-bs-dismiss="modal">Cerrar</button>
+                                    </center>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary botonDatos" @onclick="_ =>aceptarAdministrador(administrador)">
+                            <span class="fas fa-trash">Aceptar</span>
+                        </button>
+                        <button class="btn btn-danger botonDatos" @onclick="_ =>rechazarAdministrador(administrador)">
+                            <span class="fas fa-trash">Rechazar</span>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <h3>No hay nuevas solicitudes de administradores.</h3>
+    }
+}
+
+@code {
+    IList<ActiveAdministrators> administrators;
+    private User posibleAdmin = null;
+    private bool cargando = true;
+    private bool cargandoDatos = true;
+
+    protected override void OnInitialized()
+    {
+        administrators = ConfirmAdminService.getAdminitrators();
+        cargando = false;
+    }
+
+    private async Task<bool> rechazarAdministrador(ActiveAdministrators administrador)
+    {
+        bool response = await ConfirmAdminService.declineNewAdmin(administrador);
+        if (response)
+        {
+            Mail mail = this.GetMail(administrador.Email, 2);
+            await ConfirmAdminService.sendEmail(mail);
+            statehasChanged();
+        }
+        return response;
+    }
+
+    private async Task<bool> aceptarAdministrador(ActiveAdministrators administrador)
+    {
+        bool response = await ConfirmAdminService.acceptNewAdmin(administrador);
+        if (response)
+        {
+            Mail mail = this.GetMail(administrador.Email, 1);
+            await ConfirmAdminService.sendEmail(mail);
+            statehasChanged();
+        }
+        return response;
+    }
+
+    private async Task detallesAdministrador(ActiveAdministrators administrador)
+    {
+        posibleAdmin = await ConfirmAdminService.getAdmin(administrador.Email);
+        cargandoDatos = false;
+    }
+
+    private void changeState()
+    {
+        cargandoDatos = true;
+        posibleAdmin = null;
+    }
+
+    private void statehasChanged()
+    {
+        uriHelper.NavigateTo(uriHelper.Uri, forceLoad: true);
+    }
+
+    public Mail GetMail(string email, int type)
+    {
+        Mail mail = new Mail();
+        mail.Subject = "Registro de Administrador";
+        mail.Body = ConfirmAdminService.getMailBody(type);
+        mail.ToMailIds = new List<string>()
+        {
+           email,
+        };
+        return mail;
+    }
+}

@@ -1,0 +1,333 @@
+﻿@page "/ProductsSearch/{inputValue}"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using Syncfusion.Blazor.TreeGrid;
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Inputs
+@inject ProductService ProductService
+@inject Product_PhotosService Product_PhotosService
+@inject CategoryService CategoryService
+@inject AddCategoryService AddCategories
+@inject DeleteCategoryService DeleteCategories
+@inject EditCategoryService EditCategories
+@inject Shopping_Cart_Has_Service_Pandemic Shopping_Cart_Has_Service
+@inject Serviceservice Service_service
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IJSRuntime JsRuntime
+
+<div class="padre">
+    <div class="izquierdo">
+
+        <div class="flex-buscar">
+            <input @bind="@inputValue" @onkeyup="@EnterKey" class="form-control mr-sm-2" type="search" placeholder="Buscar productos" aria-label="Search" />
+            <button @onclick="searchType" class="btn btn-primary" type="submit">Buscar</button>
+        </div>
+
+        <SfToolbar ID="ToolBar">
+            <ToolbarItems>
+                <ToolbarItem OnClick="@TreeGrid.ExpandAll" Text="Expandir" TooltipText="Muestra todas categorías"></ToolbarItem>
+                <ToolbarItem OnClick="@TreeGrid.CollapseAll" Text="Colapsar" TooltipText="Oculta todas las subcategorías"></ToolbarItem>
+            </ToolbarItems>
+        </SfToolbar>
+        <SfTreeGrid ID="TreeGrid" @ref="TreeGrid" AllowSorting="true" AllowRowDragAndDrop="true" DataSource="@_categories" IdMapping="Id" ParentIdMapping="ParentId" AllowSelection="true" TreeColumnIndex="0" EnableCollapseAll="true">
+            <TreeGridEvents TValue="Category" RowDropped="Rowdrop" RowSelected="SelectionHandler" RowDeselecting="deSelectionHandler"></TreeGridEvents>
+            <TreeGridSortSettings>
+                <TreeGridSortColumns>
+                    <TreeGridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></TreeGridSortColumn>
+                </TreeGridSortColumns>
+            </TreeGridSortSettings>
+            <TreeGridColumns>
+                <TreeGridColumn Field="Title" HeaderText="Nombre" Width="100"></TreeGridColumn>
+                <TreeGridColumn Field="Description" HeaderText="Descripción" Width="160"></TreeGridColumn>
+            </TreeGridColumns>
+        </SfTreeGrid>
+    </div>
+    <div class="derecho">
+
+
+        @if (isLoading)
+        {
+            <div class="errorMessage">
+                <p>Buscando</p>
+            </div>
+        }
+        else
+        {
+            @if (_product.Count() == 0 && _service.Count() == 0)
+            {
+                <div class="errorMessage">
+                    <p>Lo sentimos no hay productos relacionados con la busqueda</p>
+                </div>
+            }
+            else
+            {
+    <div class="allProducts">
+        @foreach (var product in _product)
+        {
+            var prodPhoto = photosDisplay.FirstOrDefault(p => p.Code_ID == product.Code_ID);
+            <div class="item border-blue">
+
+                @if (prodPhoto != null)
+                {
+                    <img src="@Product_PhotosService.convertImageDisplay(prodPhoto.Photos)" class="productsImage" />
+                }
+                <p>@product.Product_Name</p>
+                <p class="item_description">@product.Product_Description</p>
+                <p class="item_price">@product.Price</p>
+
+                @{int n = product.Code_ID;
+                    int m = product.Category_ID;
+                    string o = product.Entrepreneur_Email;
+                }
+                @if (@log)
+                {
+                    <button class="btn btn-primary" @onclick="() => addInCart(n, m, o)">Añadir al carrito</button>
+                }
+                else
+                {
+                    <button class="btn btn-primary" @onclick="() => addInCart(n, m, o)" disabled>Añadir al carrito</button>
+                }
+
+            </div>
+        }
+
+        @if (_service.Count() != 0)
+        {
+            foreach (var service in _service)
+            {
+    <div class="item border-blue">
+        <p>@service.Service_Name</p>
+        <p class="item_description">@service.Service_Description</p>
+        <p class="item_price">@service.Price_per_hour</p>
+        <button class="btn btn-primary" disabled>Añadir al carrito</button>
+    </div>
+            }
+        }
+
+    </div>
+        }
+        }
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+
+    public string inputValue { get; set; }
+
+    private IList<Product> _product = new List<Product>();
+    private IList<ServicePandemic> _service = new List<ServicePandemic>();
+    IList<Product_Photos> photosDisplay;
+    bool categorySelected = false;
+
+    private SfTreeGrid<Category> TreeGrid { get; set; }
+    private IList<Category> _categories;
+    private Category SelectedCategory;
+
+    private string email;
+    bool log = false;
+    bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        email = await sessionStorage.GetItemAsync<string>("Email");
+        if (email == null)
+        {
+            email = "noEmail";
+        }
+        else
+        {
+            log = true;
+        }
+
+        photosDisplay = Product_PhotosService.loadAllPhotos();
+        initialSearch();
+        _categories = await CategoryService.GetAsync();
+        isLoading = false;
+    }
+
+    private async Task searchType()
+    {
+        int emptyCharacters = 0;
+
+        if (!string.IsNullOrEmpty(inputValue))
+        {
+            for (int i = 0; i < inputValue.Length; i++)
+            {
+                if (inputValue.ElementAt(i).Equals(' '))
+                {
+                    emptyCharacters++;
+                }
+            }
+
+            if (emptyCharacters != inputValue.Length)
+            {
+                if (categorySelected == false)
+                {
+                    search();
+                    searchService();
+                }
+                else
+                {
+                    await searchCategory();
+                    await searchCategoryService();
+                }
+            }
+        }
+    }
+
+    private void initialSearch()
+    {
+        if (inputValue.Length >= 14)
+        {
+            string substrInput = inputValue.Substring(0, 14);
+            if (substrInput.Equals("_categoryID = "))
+            {
+                int idCategory = Int32.Parse(inputValue.Substring(14));
+                _product = ProductService.GetListByCategory(idCategory);
+                _service = Service_service.GetListByCategory(idCategory);
+                inputValue = "";
+            }
+            else
+            {
+                search();
+                searchService();
+            }
+        }
+        else
+        {
+            search();
+            searchService();
+        }
+    }
+
+    private async Task searchCategory()
+    {
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        string result = "%";
+
+        result += inputValue + "%";
+        SelectedCategory = SelectedCategories.First();
+        _product = ProductService.GetListRestricted(result, SelectedCategory.Id);
+    }
+
+    private void search()
+    {
+        string result = "%";
+
+        result += inputValue + "%";
+
+        _product = ProductService.GetList(result);
+    }
+
+    public async Task EnterKey(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            await searchType();
+        }
+    }
+
+    //Add
+
+    private void OpenAddCategoryDialog()
+    {
+        AddCategories.OpenAddCategoryDialog(SelectedCategory);
+    }
+
+    //Remove
+
+    private void OpenRemoveCategoryDialog()
+    {
+        DeleteCategories.OpenRemoveCategoryDialog(SelectedCategory);
+    }
+
+    //RowDrop
+    private void Rowdrop(Syncfusion.Blazor.Grids.RowDragEventArgs<Category> args)
+    {
+        CategoryService.Rowdrop(args, this.TreeGrid);
+    }
+
+    public void deSelectionHandler()
+    {
+        categorySelected = false;
+    }
+
+    //SelectionHandler
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Category> args)
+    {
+
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        if (SelectedCategories.Count() == 0)
+        {
+            AddCategories.ParentID = null;
+            EditCategories.EditToolbarItemDisabled = true;
+            DeleteCategories.RemoveToolbarItemDisabled = true;
+            SelectedCategory = null;
+        }
+        else
+        {
+            SelectedCategory = SelectedCategories.First();
+
+            if (CategoryService.isChildNode(SelectedCategory.Id))
+            {
+                categorySelected = true;
+
+                Console.WriteLine(SelectedCategory.Id);
+                _product = ProductService.GetListByCategory(SelectedCategory.Id);
+                _service = Service_service.GetListByCategory(SelectedCategory.Id);
+
+            }
+            else
+            {
+                Console.WriteLine("No soy hijo");
+            }
+        }
+    }
+
+    private void addInCart(int productID, int categoryID, string entrepreneurEmail)
+    {
+        bool productExist = Shopping_Cart_Has_Service.searchProduct(email, productID);
+        if (productExist == false)
+        {
+            Shopping_Cart_Has product = new Shopping_Cart_Has
+            {
+                Email = email,
+                Code_ID = productID,
+                Entrepreneur_Email = entrepreneurEmail,
+                Category_ID = categoryID
+            };
+
+            Shopping_Cart_Has_Service.addProduct(product);
+
+            JsRuntime.InvokeVoidAsync("alerta", "PRODUCTO AGREGADO AL CARRITO");
+        }
+        else
+        {
+            JsRuntime.InvokeVoidAsync("alerta", "Producto ya se encuentra en el carrito");
+        }
+    }
+
+    private void searchService()
+    {
+        string resultService = "%";
+
+        resultService += inputValue + "%";
+
+        _service= Service_service.GetList(resultService);
+
+    }
+
+    private async Task searchCategoryService()
+    {
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        string resultService = "%";
+
+        resultService += inputValue + "%";
+        SelectedCategory = SelectedCategories.First();
+        _service = Service_service.GetListRestricted(resultService, SelectedCategory.Id);
+    }
+}

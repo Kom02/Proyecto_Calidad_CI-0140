@@ -1,0 +1,34 @@
+﻿html {
+    height: 100vh
+}
+
+h1, h2, h3, h4, h5, h6 {
+    text-align: center;
+}
+
+.secondary_title {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.inputsClass {
+    width: 50%;
+    height: 10%;
+}
+
+.mainClass {
+    width: 33%;
+    height: 100%;
+}
+
+.flexDiv {
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+}
+
+.marginElements {
+    margin-top: 2%
+}

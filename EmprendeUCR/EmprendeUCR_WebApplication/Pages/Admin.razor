@@ -1,0 +1,237 @@
+﻿@page "/admin"
+@using Syncfusion.Blazor.Grids;
+@using EmprendeUCR_WebApplication.Data.Services.Reports
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using EmprendeUCR.Domain.Reports.Entities; 
+@using EmprendeUCR_WebApplication.Data.Entities
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Inputs
+@inject ReportService ReportService
+@inject BannedAccountService bannedAccount
+@inject SuggestedCategoryService suggestedCategory
+@inject AddCategoryService addCategory
+
+
+<h3>Notificaciones Actuales</h3>
+
+<h5>Reportes Pendientes</h5>
+<SfToolbar ID="ToolBar">
+    <ToolbarItems>
+
+    </ToolbarItems>
+</SfToolbar>
+<SfGrid ID="Grid" @ref="Grid" AllowSorting="true" DataSource="@_reports" IdMapping="ID" ParentIdMapping="" AllowSelection="true" TreeColumnIndex="0">
+    <GridEvents TValue="Report" RowSelected="SelectionHandler" CommandClicked="CommandClickHandler"></GridEvents>
+    <GridEditSettings AllowDeleting="true" AllowEditing="true" AllowAdding="true"></GridEditSettings>
+    <GridSortSettings>
+        <GridSortColumns>
+            <GridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></GridSortColumn>
+        </GridSortColumns>
+    </GridSortSettings>
+    <GridColumns>
+        <GridColumn Field="Title" HeaderText="Titulo" Width="200"></GridColumn>
+        <GridColumn Field="Content" HeaderText="Descripción" Width="160"></GridColumn>
+        <GridColumn Field="User" HeaderText="Email de Usuario" Width="160"></GridColumn>
+
+    </GridColumns>
+</SfGrid>
+<br>
+<h5>Solicitudes de Categorías</h5>
+<SfToolbar ID="ToolBar">
+    <ToolbarItems>
+
+    </ToolbarItems>
+</SfToolbar>
+<SfGrid ID="Grids" @ref="Grids" AllowSorting="true" Allow DataSource="@_suggested" IdMapping="ID" ParentIdMapping="" AllowSelection="true" TreeColumnIndex="0">
+    <GridEvents TValue="Suggested_Category" CommandClicked="CommandClickHandler"></GridEvents>
+    <GridEditSettings AllowDeleting="true" AllowEditing="true" AllowAdding="true"></GridEditSettings>
+    <GridSortSettings>
+        <GridSortColumns>
+            <GridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></GridSortColumn>
+        </GridSortColumns>
+    </GridSortSettings>
+    <GridColumns>
+        <GridColumn Field="Title" HeaderText="Titulo" Width="100" IsPrimaryKey="true"></GridColumn>
+        <GridColumn Field="Description" HeaderText="Descripción" Width="160"></GridColumn>
+        <GridColumn Field="Status" HeaderText="Status" Width="160" Visible="false"></GridColumn>
+    </GridColumns>
+</SfGrid>
+<br>
+<SfDialog ID="WatchDialog" Width="500px" IsModal="true" @bind-Visible="@visible">
+    <DialogTemplates>
+        <Header> Categoría Sugerida </Header>
+        <Content>
+            <p><b>Titulo</b></p>
+            <p>@title</p>
+            <br>
+            <p><b>Descripcion</b></p>
+            <p>@description</p>
+        </Content>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@AnimationEffect" Duration=400 />
+    <DialogButtons>
+        <DialogButton Content="Agregar categoría" IsPrimary="true" OnClick="@AddCategory" />
+        <DialogButton Content="Rechazar categoría" CssClass="e-danger" IsPrimary="true" OnClick="@RejectCategory" />
+        <DialogButton Content="Cancelar" OnClick="@closeViewSuggestedtDialog" />
+    </DialogButtons>
+</SfDialog>
+
+
+@code {
+    //Private Variables
+    private SfGrid<Report> Grid { get; set; }
+    private IList<Report> _reports;
+    private IList<Suggested_Category> _suggested;
+    private Report SReport;
+    private double SelectedIndex;
+    private SfGrid<Suggested_Category> Grids { get; set; }
+    private Suggested_Category SuggestedCategory;
+    private DialogEffect AnimationEffect = DialogEffect.Zoom;
+
+    private string description = "";
+    private int ID;
+    private int? ParentID;
+
+    ///
+    ///    View Report Watch Dialog
+    private bool visible = false;
+    private string title = "";
+    private string content = "";
+    private string user = "";
+
+    public void closeViewReportDialog()
+    {
+        visible = false;
+    }
+
+    //On Initialized
+    protected override async Task OnInitializedAsync()
+    {
+        _reports = await ReportService.GetAsync();
+        _suggested = await suggestedCategory.GetAsync();
+    }
+
+    public void CommandClickHandler(CommandClickEventArgs<Report> args)
+    {
+        if (args.CommandColumn.ButtonOption.Content == "Ver Reporte")
+        {
+            var SelectedReport = ReportService.getReportById(args.RowData.ID);
+            SReport = SelectedReport;
+            title = SelectedReport.Title;
+            content = SelectedReport.Content;
+            user = SelectedReport.User;
+            visible = true;
+        }
+        else if (args.CommandColumn.ButtonOption.Content == "Ver Sugerencia")
+        {
+            ID = args.RowData.ID;
+            var SelectedCategory = suggestedCategory.getSuggestedById(args.RowData.ID);
+            title = SelectedCategory.Title;
+            description = SelectedCategory.Description;
+            ParentID = SelectedCategory.ParentID;
+            visible = true;
+            SuggestedCategory = SelectedCategory;
+        }
+    }
+    //SelectionHandler
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Report> args)
+    {
+        var SelectedCategories = await this.Grid.GetSelectedRecords();
+        if (SelectedCategories.Count() == 0)
+        {
+            SReport = null;
+        }
+        else
+        {
+            SReport = SelectedCategories.First();
+            SelectedIndex = await Grid.GetRowIndexByPrimaryKey(SReport.ID);
+        }
+    }
+    private async void AddTemporalBannedAccount()
+    {
+        closeViewReportDialog();
+        ReportService.deleteReport(SReport);
+        BannedAccount Account = new BannedAccount();
+        Account.UserEmail = user;
+        DateTime time = DateTime.Now;              // Use current time
+        Account.BeginDate = time.Date;
+        Account.FinishDate = time.AddDays(15).Date;
+        Account.Type = 1;
+        bannedAccount.AddUser(Account);
+        var records = await Grid.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        await Grid.DeleteRecord("Title", record);
+    }
+    private async void AddBannedAccount()
+    {
+        closeViewReportDialog();
+        ReportService.deleteReport(SReport);
+        BannedAccount Account = new BannedAccount();
+        Account.UserEmail = user;
+        DateTime time = DateTime.Now; // Use current time
+        Account.BeginDate = time.Date;
+        Account.FinishDate = time.Date.AddDays(100);
+        Account.Type = 0;
+        bannedAccount.AddUser(Account);
+        var records = await Grid.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        await Grid.DeleteRecord("Title", record);
+    }
+    private async void deleteRequest()
+    {
+        closeViewReportDialog();
+        var selected = Grid.SelectedRowIndex;
+        var records = await Grid.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        ReportService.deleteReport(SReport);
+        await Grid.DeleteRecord("Title", record);
+    }
+
+
+    public void closeViewSuggestedtDialog()
+    {
+        visible = false;
+    }
+
+    public void CommandClickHandler(CommandClickEventArgs<Suggested_Category> args)
+    {
+        if (args.CommandColumn.ButtonOption.Content == "Ver Sugerencia")
+        {
+            ID = args.RowData.ID;
+            var SelectedCategory = suggestedCategory.getSuggestedById(args.RowData.ID);
+            title = SelectedCategory.Title;
+            description = SelectedCategory.Description;
+            ParentID = SelectedCategory.ParentID;
+            visible = true;
+            SuggestedCategory = SelectedCategory;
+        }
+    }
+    private async void AddCategory()
+    {
+        closeViewSuggestedtDialog();
+        var selected = Grids.SelectedRowIndex;
+        var records = await Grids.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        await Grids.DeleteRecord("Title", record);
+        await Grids.EndEdit();
+        Category category = new Category();
+        category.Title = title;
+        category.ParentId = ParentID;
+        category.Description = description;
+        await addCategory.InsertCategoryAsync(category);
+        suggestedCategory.deleteSuggested(SuggestedCategory);
+    }
+    private async void RejectCategory()
+    {
+
+        closeViewSuggestedtDialog();
+        var selected = Grids.SelectedRowIndex;
+        var records = await Grids.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        await Grids.DeleteRecord("Title", record);
+        await Grids.EndEdit();
+        suggestedCategory.deleteSuggested(SuggestedCategory);
+    }
+}

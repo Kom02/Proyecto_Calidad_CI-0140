@@ -1,0 +1,478 @@
+﻿@page "/OrderManagement"
+
+@using EmprendeUCR_WebApplication.Application.OrderContext
+@using EmprendeUCR_WebApplication.Domain.OrderContext.Entities
+@using EmprendeUCR_WebApplication.Domain.Core.CoreEntities
+@using EmprendeUCR_WebApplication.Application.BillContext
+@using EmprendeUCR.Application.ProfileContext
+@using EmprendeUCR.Application.RegisterContext
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using System.IO;
+@inject IRegisterService RegisterService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage;
+@inject IJSRuntime js
+@inject IOrderService OrderService
+@inject IProfileService ProfileService;
+@inject IBillService BillService
+@*
+    OrderManagement.razor : This page will be used by entrepreneurs to check
+    and set their orders status.
+*@
+
+@* Display "Cargando" message while shopping cart is still loading. *@
+@if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="mt-5 order-acceptance w-100 h-100 d-flex justify-content-around m-auto">
+
+        <div class="w-70 lista-items h-100 bg-white d-flex flex-column align-items-center" id="Orders">
+
+            <div class="w-90 row d-flex justify-content-around my-3 fs-2 m-auto">
+                <p class="text-start">Ordenes</p>
+            </div>
+            <div class=" w-90 d-flex align-items-center justify-content-end mb-4">
+                <p class="fs-5">Mostrar por</p>
+                <select @onchange="filteredBy" class="ms-3 form-select form-select-sm d-block width-150" aria-label=".form-select-sm example">
+                    <option selected>Todos</option>
+                    <option value="Aceptado">Aceptado</option>
+                    <option value="En progreso">En progreso</option>
+                    <option value="Listo para entrega">Listo para entrega</option>
+                    <option value="Terminado">Terminado</option>
+                </select>
+            </div>
+
+            <div class="w-90 row d-flex justify-content-around align-items-center">
+                <div class="col-3 text-center fs-5">Fecha y hora de solicitud</div>
+                <div class="col-3 text-center fs-5">Cliente</div>
+                <div class="col-2 text-center fs-5">Fecha de entrega</div>
+                <div class="col-2 text-center fs-5">Estado</div>
+                <div class="col-2 text-center fs-5">Detalles</div>
+            </div>
+
+            <div class="flex-column d-flex align-items-center w-100 my-4 d-flex justify-content-around">
+                @{int i = 0;}
+                @foreach (var order in filtered)
+                {
+                    int orderNumber = i;
+
+                    <div class="w-90 row border-grey mb-5 d-flex align-content-center py-5">
+                        <div class="col-3 text-center d-inline-flex align-items-center"
+                             @onclick="() => getProducts(order)"
+                             style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                            @*
+                                This line displays the order date and hour of creation.
+                            *@
+                            <p class="fs-6 m-auto">@order.DateAndHourCreation.ToString()</p>
+                        </div>
+
+                        <div class="col-3 text-center d-inline-flex align-items-center"
+                             @onclick="() => getProducts(order)"
+                             style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                            @*
+                                This line displays the order client email.
+                            *@
+                            <p class="fs-6 m-auto text-break">@order.ClientEmail</p>
+                        </div>
+
+                        <div class="col-2 d-inline-flex align-items-center"
+                             @onclick="() => getProducts(order)"
+                             style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                            @*
+                                This line displays the order delivery date.
+                            *@
+                            <p class="fs-6 m-auto">@order.DeliveryDate.ToString("d")</p>
+                        </div>
+
+                        <div class="col-2 d-inline-flex align-items-center" @onclick="() => orderToUpdate=order">
+                            @*
+                                This section displays the order status selection.
+                            *@
+
+                            @{
+                                setColor(order.State);
+                            }
+
+                            <select class="w-70 form-select fs-6 ft-@color fw-bold m-auto" @onchange="setOrderStatus" id="orderStatus" required>
+                                @{int j = 0;}
+                                @for (j = statuses.FindIndex(status => status.Name == order.State); j >= 0 && j < statuses.Count(); j++)
+                                {
+                                    setColor(@statuses[j].Name);
+                                    <option class="ft-@color fw-bold" value=@statuses[j].Name>@statuses[j].Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-2 d-inline-flex align-items-center justify-content-center">
+                            @*
+                                This line displays the order details button.
+                            *@
+                            <button type="button" class="btn bg-orange" @onclick="() => getProducts(order)" 
+                                    style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                                Detalles
+                            </button>
+                        </div>
+
+                    </div>
+                    i++;
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+    @* Show the summary of the orders *@
+    <div class="modal fade" id="pending_orders_summary" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content p-3">
+                <div class="modal-header">
+                    <p class="fs-2 modal-title" id="order_summary_label">Resumen del pedido</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                @if (_products != null)
+                {
+                    <div class="modal-body flex-column">
+
+                        <div class="row mb-2">
+                            <div class="col-3 fs-6 content-center">Productos solicitados</div>
+                            <div class="col-3 fs-6 content-center align-self-center text-center">Cantidad Solicitada</div>
+                            <div class="col-3 fs-6 content-center">Precio</div>
+                            <div class="col-3 fs-6 content-center">Estado</div>
+                        </div>
+
+                        @foreach (var product in _products)
+                        {
+                            <div class=" height-100 row mb-1 py-2 d-flex align-content-center">
+                                <div class="col-3 text-center">
+                                    @*
+                                        This line displays the product name.
+                                    *@
+                                    <p class="fs-6 m-auto">@product.Item2.ProductName</p>
+                                </div>
+
+                                <div class="col-3 text-center">
+                                    @*
+                                        This line displays the product quantity.
+                                    *@
+                                    <p class="fs-6 m-auto">@product.Item1</p>
+                                </div>
+
+                                <div class="col-3 text-center">
+                                    @*
+                                        This line displays the product price, multiplied by the quantity.
+                                    *@
+                                    <p class="fs-6 m-auto">
+                                        <span>₡ </span>
+                                        @(product.Item2.currentPrice*product.Item1)
+                                    </p>
+                                </div>
+
+                                <div class="col-3 d-inline-flex align-items-center" @onclick="() => productToUpdate=product.Item2">
+
+                                    @{
+                                        string state = getProductStatus(product.Item2, currentOrder);
+                                        setColor(state);
+                                    }
+
+                                    <select class="w-70 ft-@color fw-bold form-select fs-6 m-auto" @onchange="setProductStatus" id="orderStatus" required>
+                                        @{
+                                            int k = 0;
+                                            productStatuses = statuses.GetRange(0, statuses.Count());
+                                            setProductStatuses(product.Item2, productStatuses);
+
+                                            for (k = productStatuses.FindIndex(status => status.Name == state); k >= 0 && k < productStatuses.Count(); k++)
+                                            {
+                                                setColor(productStatuses[k].Name);
+                                                <option class="ft-@color fw-bold" value=@productStatuses[k].Name>@productStatuses[k].Name</option>
+                                            }
+                                            productStatuses = statuses.GetRange(0, statuses.Count());
+                                        }
+                                    </select>
+                                </div>
+
+                            </div>
+                        }
+
+                        <p class="w-90 fs-6 text-end">
+                            Monto total:
+                            <span> ₡ </span>
+                            @totalAmount
+                        </p>
+                    </div>
+
+                    <p class="fs-6 text-center">Requerimientos:</p>
+                    <div class="w-90 border-grey mb-5 m-auto align-items-center content-center overflow-auto height-150">
+                        <p class="fs-6 text-start text-break">@currentOrder.Details</p>
+                    </div>
+
+                    @* Delivery address *@
+                    <p class="fs-6 text-center">Direccion de entrega:</p>
+                    <div class="w-70 mb-5 m-auto align-items-center content-center overflow-auto">
+                        <p class="fs-6 text-break text-center">@currentOrder.DeliveryAddress</p>
+                    </div>
+                    
+                    <div class="w-100 mb-5 d-flex flex-row">
+
+                        @* Payment method *@
+                        <div class="col-4">
+                            <p class="fs-6 text-center">
+                                Metodo de pago:<br/>
+                                @currentOrder.PaymentName
+                            </p>
+                        </div>
+
+                        @* Delivery date *@
+                        <div class="col-4">
+                            <p class="fs-6 text-center">
+                                Fecha solicitada:<br/>
+                                @currentOrder.DeliveryDate.ToString("MM/dd/yyyy")
+                            </p>
+                        </div>
+
+                        @* Client email *@
+                        <div class="col-4">
+                            <p class="fs-6 text-center">
+                                Cliente:<br/>
+                                @currentOrder.ClientEmail
+                            </p>
+                        </div>
+                    </div>
+
+                        @if(emailSentFeedback == true){
+                            <p style ="color:lime">Factura enviada correctamente</p>
+                        }
+                    <div class="modal-footer d-flex justify-content-between">
+                        <button @onclick="() => createBillingPdf(currentOrder)" type="button" class="btn btn-primary">
+                            Ver factura
+                        </button>
+                        @* 
+                         <button @onclick="() => sendBillToClient(currentOrder)" type="button" class="btn btn-primary">
+                            Renviar factura
+                        </button>
+                        *@
+                        <button  @onclick="() => resetFeedbackStatus()" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+
+    // Loading page variable.
+    private bool _isLoading = true;
+
+    // Variable to indicate when a feedback message must show up.
+    private bool emailSentFeedback = false;
+
+    // List of oders asociated to the entrepreneur
+    private List<Order> _orders;
+
+    private List<Order> filtered;
+
+    // List of statuses asociated to the orders
+    private List<Status> statuses;
+
+    // List of statuses asociated to the products
+    private List<Status> productStatuses;
+
+    private List<Tuple<int, EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product>> _products;
+
+    // Email associated to entrepreneur
+    string entrepreneurEmail = "";
+
+    int totalAmount = 0;
+
+    private Order currentOrder;
+
+    private Order orderToUpdate;
+
+    private EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product productToUpdate;
+
+    string orderStatus = "";
+    string productStatus = "";
+
+    int numToUpdate = 0;
+
+    string color = "";
+    // Names of both the entrepreneur and the client
+    string entrepreneurName = "";
+    string clientName = "";
+
+    /*
+      Summary: Overridden method from Blazor that is invoked when the page is loaded
+      Fetchs the userEmail and the orders related to such email. Sets loading to false.
+      Parameters: Method does not recieve parameters
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected override async Task OnInitializedAsync()
+    {
+        entrepreneurEmail = await sessionStorage.GetItemAsync<string>("Email");
+        _orders = await OrderService.GetEntrepreneurAcceptedOrders(entrepreneurEmail);
+        filtered = await OrderService.GetEntrepreneurAcceptedOrders(entrepreneurEmail);
+        statuses = await OrderService.GetOrderStatuses();
+        var entrepeneur = await ProfileService.GetUser(entrepreneurEmail);
+        entrepreneurName = entrepeneur.Name + " " + entrepeneur.F_Last_Name + " " + entrepeneur.S_Last_Name;
+        _isLoading = false;
+    }
+
+    /*
+      Summary: Method dedicated to get the products of a given order. It makes use of a service called GetProducts
+      Parameters: Method recieves an Order object as parameter.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async void getProducts(Order order)
+    {
+        totalAmount = 0;
+        currentOrder = order;
+        await getName();
+        _products = OrderService.GetProducts(order);
+        setTotalAmount(_products);
+        StateHasChanged();
+    }
+
+    /*
+      Summary: Method dedicated to get the name of the client associated to an order. It uses the method GetUser from the ProfileService 
+      Parameters: no parameters
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected async Task getName()
+    {
+        var client = await ProfileService.GetUser(currentOrder.ClientEmail);
+        clientName = client.Name + " " + client.F_Last_Name + " " + client.S_Last_Name;
+    }
+
+    /*
+      Summary: Method dedicated to create the pdf with the billing information. 
+      Parameters: Method recieves an Order object as parameter, as well as the names of both the client and the entrepreneur.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void createBillingPdf(Order order)
+    {
+        BillService.createBill(js, order, OrderService.GetProducts(order), clientName , entrepreneurName);
+    }
+
+
+     /*
+      Summary: Method to simply change a boolean value. It hides the feedback
+               message the entrepreneur sees after sending an email to one of 
+               their customers.
+      Parameters: None
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void  resetFeedbackStatus() 
+    {
+      emailSentFeedback = false;
+    }
+
+    /*
+      Summary: Method to send an order's bill to its owner. It first creates a
+               PDF file and writes it to disk. Once done, the method attaches the
+               PDF's path as an attachment to the recently created Mail object.
+               Then, with the bill as attachment and the rest of important
+               spaces populated, the mail is sent to the customer via RegisterService.
+               Finally, a bolean value is switched to true to display a confirmation
+               message to the sending entrepreneur.
+      Parameters: An Order object, used to extract relevant information from and
+                  to create the bill with such information.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void sendBillToClient(Order order)
+    {
+       byte[] pdfBillBytes = BillService.returnBillBytes(js, order, OrderService.GetProducts(order), clientName, entrepreneurName);
+       Mail emailWithBill = new Mail();
+       emailWithBill.Subject = "Factura de su más reciente orden";
+       emailWithBill.ToMailIds.Add(order.ClientEmail);
+       File.WriteAllBytes("Factura_Orden.pdf", pdfBillBytes);
+       emailWithBill.Attachements.Add("Factura_Orden.pdf");
+       emailWithBill.Body = String.Format("<h1>¡Hola!<h1> <h3>Gracias por elegir EmprendeUCR. La factura de su compra a {0} se encuentra adjunta<h3>",
+                                            entrepreneurName);
+       RegisterService.sendEmail(emailWithBill);
+       emailSentFeedback = true;
+   }
+
+    /*
+      Summary: This method takes a list of tuples (Products and int) and calculates a total price with the product price and
+      the amount of said product.
+      Parameters: Method recieves a list of tuples with a Product Object and an int.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void setTotalAmount(List<Tuple<int, EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product>> products)
+    {
+        foreach (Tuple<int, EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product> tuple in products)
+        {
+            totalAmount += tuple.Item2.currentPrice * tuple.Item1;
+        }
+    }
+
+    public async Task filteredBy(ChangeEventArgs e)
+    {
+        _orders = await OrderService.GetEntrepreneurAcceptedOrders(entrepreneurEmail);
+
+        if (e.Value.ToString() == "Todos")
+        {
+            filtered = _orders;
+        }
+        else
+        {
+            filtered = _orders.Where(item => item.State == e.Value.ToString()).ToList();
+        }
+        StateHasChanged();
+    }
+
+    public void setOrderStatus(ChangeEventArgs e)
+    {
+        orderStatus = e.Value.ToString();
+        OrderService.updateOrderStatus(orderToUpdate, orderStatus);
+        StateHasChanged();
+    }
+
+    private async Task setProductStatus(ChangeEventArgs e)
+    {
+        productStatus = e.Value.ToString();
+        await OrderService.updateProductStatus(currentOrder, productStatus, productToUpdate);
+    }
+
+    /*
+      Summary: This method takes a product, and a order, and search for the
+               correspondant Organized Object.
+      Parameters: Method recieves a Product Object and an Order Object.
+      Return: A Organized Object.
+      Exceptions: There aren't known exceptions
+    */
+    private string getProductStatus(EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product product, Order order)
+    {
+        return product.GetProductStatus(order);
+    }
+
+    private void setColor(string status)
+    {
+        color = OrderService.getStatusColor(status);
+    }
+
+    /*
+      Summary: It takes a list of statuses and fill it with the personalized
+               statuses correspondent to a specific product.
+      Parameters: Recieves a Product Object and a List of Status Objects.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task setProductStatuses(EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product product, 
+                                                    List<Status> statusesList)
+    {
+        await OrderService.SetProductStatuses(product, statusesList);
+    }
+
+}

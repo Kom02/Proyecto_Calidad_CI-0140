@@ -1,0 +1,226 @@
+﻿@page "/ViewProduct"
+@page "/ViewProduct/{CodeId}"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using EmprendeUCR_WebApplication.Data.Services.Keyword
+@using EmprendeUCR_WebApplication.Data.Entities.Keyword
+@using System.IO
+@using BlazorInputFile
+@using Syncfusion.Blazor.TreeGrid;
+@inject NavigationManager NavigationManager
+@inject Product_ServiceService Product_ServiceService
+@inject ProductService ProductService
+@inject CategoryService CategoryService
+@inject Product_PhotosService Product_PhotosService
+@inject HasSuppliesService HasSuppliesService
+@inject Has_StatusService Has_StatusService
+@inject KeywordService keyWord
+@inject HasKeywordService hasKeyword
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+<body>
+
+    <div class="">
+        <!--Displays the header-->
+        <section class=" w-100 gap-lg-2">
+            <div class=" border-1 shadow  bg-silver w-90">
+                <div class="form-group w-70">
+                    <label for="Name" class="control-label m-lg-2">Nombre:</label>
+                    <label for="Name" class="control-label">@_product.Product_Name</label>
+                </div><br />
+                <div class="form-group w-30">
+                    <label for="Price" class="control-label m-lg-2">Categoria:</label>
+                    <label for="Price" class="control-label ">@CategoryService.getCategory(_product.Category_ID).Title</label>
+                </div>
+                <div class="form-group w-70">
+                    <label for="Product_Description" class="control-label m-lg-2">Descripción:</label>
+                    <textarea readonly="readonly" rows="3" form="Product_Description" class="form-control m-lg-2">@_product.Product_Description</textarea>
+                </div><br />
+                <div class="form-group w-30">
+                    <label for="Price" class="control-label m-lg-2">Precio(CRC):</label>
+                    <label for="Price" class="control-label ">@_product.Price</label>
+                </div><br />
+            </div>
+
+            <div class="border-1 shadow  bg-silver mt-3 w-90">
+                <label for="Keyword" class="control-label m-lg-2">Palabras claves Asociadas:</label>
+                <label for="Keyword" class="control-label ">
+                @foreach (string has in hasKeyword.GetKeywordsByProduct(ProductService.GetProduct(_product.Code_ID)))
+                {
+                    @has.ToString()
+                }
+                @*@hasKeyword.GetKeywordsByProduct(ProductService.GetProduct(_product.Code_ID))*@
+                </label>
+            </div>
+
+            <div class=" border-1 shadow  bg-silver mt-3 w-90">
+                <h2 class="bg-blue text-center">Estados asociados</h2>
+                @foreach (var prodStatus in productStatuses.OrderBy(p => p.Order))
+                {
+        <span class="m-lg-2">
+            @prodStatus.Name
+            <br />
+        </span>}
+            </div>
+
+            <div class=" border-1 shadow  bg-silver  mt-3 w-90">
+                <h2 class="bg-blue text-center">Insumos</h2>
+                @foreach (var category in supplyCategory)
+                {
+
+        <span class="m-lg-2">
+            @category.Title
+            <br />
+        </span>}
+            </div>
+
+            <div>
+                <div class="wrapper mt-3">
+                    @foreach (var prodPhoto in photosDisplay)
+                    {
+        <div class="one">
+            <label for="addPhoto1">
+                @if (prodPhoto != null)
+                {
+        <img src="@Product_PhotosService.convertImageDisplay(prodPhoto.Photos)" width="200" class=" img-card mt-2" />}
+            </label>
+        </div>}
+                </div>
+            </div>
+
+            <div class="row mt-3 ">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <input type="button" class="btn btn-primary" @onclick="@back" value="Regresar" />
+                        <input type="button" class="btn btn-primary" @onclick="@onEdit" value="Editar" />
+                        <input type="button" class="btn btn-primary" @onclick="@onDelete" value="Eliminar" />
+
+                    </div>
+                </div>
+            </div>
+
+            @if (ShowDialog)
+            {
+
+        <div class="modal fade show d-block" id="exampleModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    @if (ShowError)
+                    {
+        <div class="modal-header">
+            <h5 class="modal-title" id="titleLabel">Confirmar borrado.</h5>
+            <button type="button" class="close" @onclick="@Close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">X</span>
+            </button>
+        </div>
+                            <div class="modal-body">
+                                <span>Este producto no puede ser borrado en este momento.</span>
+                            </div> }
+
+                        else
+                        {
+        <div class="modal-header">
+            <h5 class="modal-title" id="titleLabel">Confirmar borrado.</h5>
+            <button type="button" class="close" @onclick="@Close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">X</span>
+            </button>
+        </div>
+                            <div class="modal-body">
+                                <button type="submit" class="btn btn-primary" @onclick="@Close"> Cancelar</button>
+                                <button type="submit" class="btn btn-primary" @onclick="@DeleteProduct"> Borrar</button>
+                            </div>}
+
+                </div>
+            </div>
+        </div>}
+
+        </section>
+
+    </div>
+</body>
+
+@functions { [Parameter]
+    public string CodeId { get; set; } }
+
+@code { Product _product = new Product();
+    private IList<Has_Keyword> _keys;
+
+    Product_Photos _prodPhoto = new Product_Photos();
+    IList<Product_Photos> photosDisplay;
+    IList<HasSupplies> productSupplies;
+    IList<Has_Status> productStatuses;
+    IList<Category> supplyCategory = new List<Category>();
+
+    // Whether to show dialog or not
+    Boolean ShowDialog = false;
+    Boolean ShowError = false;
+
+    public void c(string CodeId)
+    {
+        loadProduct(CodeId);
+    }
+
+    public void loadProduct(string CodeId)
+    {
+        _product = ProductService.GetProduct(CodeId);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loadProduct(CodeId);
+        loadPhotos(int.Parse(CodeId));
+        loadSupplies(int.Parse(CodeId));
+        loadStatuses(int.Parse(CodeId));
+    }
+
+    public void loadPhotos(int CodeId)
+    {
+        photosDisplay = Product_PhotosService.loadPhotosByID(CodeId);
+    }
+
+    public void loadSupplies(int CodeId)
+    {
+        productSupplies = HasSuppliesService.loadSuppliesByID(CodeId);
+        foreach (var supply in productSupplies)
+        {
+            var category = CategoryService.getCategory(supply.Supplie_ID);
+            supplyCategory.Add(category);
+        }
+    }
+
+    public void loadStatuses(int CodeId)
+    {
+        productStatuses = Has_StatusService.loadStatusesByID(CodeId);
+        productStatuses.OrderBy(p => p.Order);
+    }
+
+    void back()
+    {
+        NavigationManager.NavigateTo("ListProducts");
+    }
+
+    void onEdit()
+    {
+        NavigationManager.NavigateTo("EditProduct/" + CodeId.ToString());
+    }
+
+    void onDelete()
+    {
+        ShowDialog = true;
+    }
+
+    public void Close()
+    {
+        ShowDialog = false;
+    }
+
+    async Task DeleteProduct()
+    {
+        ShowError = await Product_ServiceService.DeleteProductServiceByIdAsync(int.Parse(CodeId));
+        NavigationManager.NavigateTo("ListProducts");
+        //if (!ShowError)
+        //{
+        //    NavigationManager.NavigateTo("ListProducts");
+        //}
+    } }

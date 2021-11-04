@@ -1,0 +1,47 @@
+﻿@page "/AddEntrepreneur"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+
+@inject EntrepreneurService  EntrepreneurService
+@inject NavigationManager NavigationManager
+<h2>Agregar Emprendedor</h2>
+<hr />
+<form>
+    <div class="row">
+        <div class="col-md-8">
+
+            <div class="form-group">
+                <label for="User_Email" class="control-label">Correo Electronico</label>
+                <input form="User_Email" class="form-control" @bind="@obj.User_Email" />
+            </div>
+            <div class="form-group">
+                <label for="Presentation" class="control-label">Presentación</label>
+                <input form="Presentation" class="form-control" @bind="@obj.Presentation" />
+            </div>
+
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <input type="button" class="btn btn-primary" @onclick="@CreateEntrepreneur" value="Guardar" />
+                <input type="button" class="btn btn-primary" @onclick="@Cancel" value="Cancelar" />
+            </div>
+        </div>
+    </div>
+</form>
+
+@code {
+    Entrepreneur obj = new Entrepreneur();
+    protected async void CreateEntrepreneur()
+    {
+        await EntrepreneurService.InsertEntrepreneurAsync(obj);
+        NavigationManager.NavigateTo("ListEntrepreneurs");
+    }
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("ListEntrepreneurs");
+    }
+
+}

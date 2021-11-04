@@ -1,0 +1,48 @@
+﻿@page "/DeleteProduct/{Id}"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@inject ProductService  productService
+@inject NavigationManager NavigationManager
+<h2>Borrar producto</h2>
+<hr />
+<h3>¿Está seguro que quiere eliminar este producto de su lista?</h3>
+<form>
+    <div class="row">
+        <div class=" col-md-8">
+            <div class="form-group">
+                <label>Id del producto:</label>
+                <label>@obj.Code_ID</label>
+            </div>
+            <div class="form-group">
+                <label>Precio (CRC):</label>
+                <label>@obj.Price</label>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <input type="button" class="btn btn-danger" @onclick="@Delete" value="Borrar" />
+                <input type="button" class="btn btn-primary" @onclick="@Cancel" value="Cancelar" />
+            </div>
+        </div>
+    </div>
+</form>
+@code {
+    [Parameter]
+    public string Id { get; set; } // se pasó a int
+    EmprendeUCR_WebApplication.Data.Entities.Product obj = new EmprendeUCR_WebApplication.Data.Entities.Product();
+    protected override async Task OnInitializedAsync()
+    {
+        obj = await Task.Run(() => productService.GetProductAsync(Convert.ToInt32(Id)));
+    }
+    protected async void Delete()
+    {
+        await productService.DeleteProductAsync(obj);
+        NavigationManager.NavigateTo("ListProducts");
+    }
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("ListProducts");
+    }
+}

@@ -1,0 +1,131 @@
+﻿@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Application.HomePageClientContext
+@inject IHomePageClientService IHomePageClientService
+
+<div class="modal @ModalClass modal-dialog-centered" tabindex="-1" style="display:@ModalDisplay">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="displayRow">
+
+                    <div class="displayProduct">
+                        <img class="productImage" src="@imageProduct" />
+                    </div>
+
+                    <div class="displayCol">
+                        @if (!string.IsNullOrEmpty(myProduct.Product_Name))
+                        {
+                            <div class="productDetails">
+                                <p> <b class="secondary_title">Nombre: </b>  @myProduct.Product_Name</p>
+                            </div>
+                        }
+                        <div class="productDetails">
+                            <p> <b class="secondary_title">Descripción: </b> @myProduct.Product_Description</p>
+                        </div>
+                        <div class="productDetails">
+                            @if (availability > 0)
+                            {<p><b class="secondary_title">Disponibilidad: </b> <a class="text-success">Disponible</a> </p>}
+                            else
+                            {<p><b class="secondary_title">Disponibilidad: </b> <a class="text-danger">No disponible</a> </p>}
+                        </div>
+                        <div class="productDetails">
+                            <p><b class="secondary_title">Precio: </b> ₡@myProduct.Price</p>
+                        </div>
+                        <div class="productDetails">
+                            <p><b>Vendedor: </b> @getEntrepreneurName(myProduct.Entrepreneur_Email) </p>
+                        </div>
+                        @if (!string.IsNullOrEmpty(deathLine))
+                        {
+                            <div class="productDetails">
+                                <p><b>Vencimiento : </b> @deathLine </p>
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+            <hr />
+            <center>
+                @if (availability > 0 && isLoged && isProduct )
+                {
+                    <button type="button" class="btn btn-primary botonCerrar" @onclick="()=>add()"> Agregar al carrito </button>
+                }
+                <button class="btn btn-secondary bontonCerrar" type="button" @onclick="() => Close()">Cerrar </button>
+            </center>
+        </div>
+    </div>
+</div>
+
+
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+
+@code {
+
+    [Parameter]
+    public Product myProduct { get; set; } = new Product();
+
+    [Parameter]
+    public string imageProduct { get; set; } = "/images/notfound.png";
+
+    //public Action<int, int, string> addToCart { get; set; }
+
+    [Parameter]
+    public EventCallback<Product> addToCart { get; set; }
+
+    [Parameter]
+    public int availability { get; set; }
+
+    [Parameter]
+    public bool isLoged { get; set; } = false;
+
+    [CascadingParameter]
+    public bool inCart { get; set; }
+
+    [Parameter]
+    public bool isProduct { get; set; } = true;
+
+    [Parameter]
+    public string deathLine { get; set; } = string.Empty;
+
+
+    public Guid Guid = Guid.NewGuid();
+    public string ModalDisplay = "none;";
+    public string ModalClass = "";
+    public bool ShowBackdrop = false;
+    private bool showMessageCart = false;
+
+    protected async Task add()
+    {
+        await addToCart.InvokeAsync(myProduct);
+    }
+
+    public void Open()
+    {
+        ModalDisplay = "block;";
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        ModalDisplay = "none";
+        ModalClass = "";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+    private string getEntrepreneurName(string email)
+    {
+        return IHomePageClientService.GetEntrepreneurNameByEmail(email);
+    }
+}

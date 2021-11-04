@@ -1,0 +1,172 @@
+﻿@using EmprendeUCR.Application.PaymentInfos;
+@using EmprendeUCR.Application.PaymentMethods;
+@using EmprendeUCR.Domain.PaymentInfos.Entities;
+@using EmprendeUCR.Domain.PaymentMethods.Entities;
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Popups
+
+@inherits SinpeIbanPaymentInfoEntrepreneurBase
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IHasPaymentInfoService HasPaymentInfoService
+@inject IPaymentInfoService PaymentInfoService
+@inject ISinpeIbanPaymentInfoService SinpeIbanPaymentInfoService
+@inject NavigationManager NavigationManager
+
+<div style="margin: 20px">
+    <div style="display: flex; justify-content: space-between">
+        <b>SINPE IBAN</b>
+        @if (PaymentMethodDisabled) {
+            <label>Estado: Desactivado</label>
+        }
+        else {
+            <label>Estado: Activado</label>
+        }
+        <SfButton OnClick="ShowAddSinpeIbanDialog" Disabled="@PaymentMethodDisabled">Agregar</SfButton>
+    </div>
+    <div style="margin-top: 10px">
+        <SfGrid ID="SinpeIbanGrid" @ref="SinpeIbanPaymentInfoGrid" AllowSelection="false" AllowSorting="true" DataSource="@_sinpeIbanPaymentInfoList">
+            <GridEditSettings AllowEditing="true" AllowEditOnDblClick="false" AllowDeleting="true"></GridEditSettings>
+            <GridEvents CommandClicked="SinpeIbanCommandClicked" TValue="SinpeIbanPaymentInfo"></GridEvents>
+            <GridColumns>
+                <GridColumn Field=@nameof(SinpeIbanPaymentInfo.Account_Number) HeaderText="Cuenta IBAN" IsPrimaryKey="true"></GridColumn>
+                <GridColumn TextAlign="TextAlign.Center" Width="125">
+                    <GridCommandColumns>
+                        <GridCommandColumn Title="Eliminar" ButtonOption="@(new CommandButtonOptions() { IconCss = " e-icons e-delete", CssClass = "e-flat", Content= "Eliminar" })"></GridCommandColumn>
+                    </GridCommandColumns>
+                </GridColumn>
+            </GridColumns>
+            <GridTemplates>
+                <EmptyRecordTemplate>
+                    <span>No existen datos registrados</span>
+                </EmptyRecordTemplate>
+            </GridTemplates>
+        </SfGrid>
+    </div>
+</div>
+
+<SfDialog ID="addSinpeIbanInfoDialog" IsModal="true" Width="300px" @bind-Visible="@AddSinpeIbanDialogVisible">
+    <DialogTemplates>
+        <Header>
+            Agregar SINPE IBAN
+        </Header>
+        <Content>
+            <div class="control-label">
+                Número de cuenta
+            </div>
+            <SfMaskedTextBox Mask="[C][R][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]" @bind-Value="@AddedSinpeIban"></SfMaskedTextBox>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Agregar" IsPrimary="true" OnClick="@AddSinpeIban" Disabled=@AddDisabled />
+        <DialogButton Content="Cancelar" IsPrimary="true" OnClick="@CloseAddSinpeIbanDialog" />
+    </DialogButtons>
+</SfDialog>
+<style>
+    .control-label {
+        padding: 10px 0px 10px 0px;
+    }
+</style>
+
+<SfDialog ID="confirmationDialog" IsModal="true" Width="300px" @bind-Visible="@ConfirmationDialogVisible">
+    <DialogTemplates>
+        <Header>
+            Eliminar información de pago
+        </Header>
+        <Content>
+            Está seguro(a) que desea eliminar la información de pago?
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Aceptar" IsPrimary="true" OnClick="@RemovePaymentInformation" />
+        <DialogButton Content="Cancelar" IsPrimary="true" OnClick="@CloseConfirmationDialog" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
+    [Parameter]
+    public string emailToRegister { get; set; } = string.Empty;
+    [Parameter]
+    public List<HasPaymentInfo> list { get; set; } = new();
+    [Parameter]
+    public SinpeIbanPaymentMethod paymentMethod { get; set; } = null;
+    string Email = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(emailToRegister))
+        {
+            _sinpeIbanPaymentInfoList = await SinpeIbanPaymentInfoService.GetSinpeIbanPaymentInfosByPaymentInfoIDAsync(list);
+            Email = emailToRegister;
+        }
+        else
+        {
+            Email = await sessionStorage.GetItemAsync<string>("Email");
+            if (Email != null)
+            {
+                _sinpeIbanPaymentInfoList = await SinpeIbanPaymentInfoService.GetSinpeIbanPaymentInfosByPaymentInfoIDAsync(list);
+            }
+        }
+        if (paymentMethod == null)
+        {
+            PaymentMethodDisabled = true;
+        }
+        else {
+            PaymentMethodDisabled = !paymentMethod.Status;
+        }
+    }
+
+    protected async void AddSinpeIban()
+    {
+        AddSinpeIbanDialogVisible = false;
+        await AddSinpeIbanInfoAndClose();
+        AddedSinpeIban = "CR";
+        StateHasChanged();
+    }
+
+    protected async Task AddSinpeIbanInfoAndClose()
+    {
+        SinpeIbanPaymentInfo sinpeIbanPI = await SinpeIbanPaymentInfoService.GetSinpeIbanPaymentInfoByIdAsync(AddedSinpeIban);
+        int PaymentInfoID;
+        if (sinpeIbanPI != null)
+        {
+            PaymentInfoID = sinpeIbanPI.Payment_Info_ID;
+            await AddSinpeIbanInfo(PaymentInfoID);
+        }
+
+        else
+        {
+            PaymentInfo? PaymentInfo = await PaymentInfoService.AddPaymentInfoAsync();
+            if (PaymentInfo != null)
+            {
+                PaymentInfoID = PaymentInfo.ID;
+                if (paymentMethod != null)
+                {
+                    sinpeIbanPI = new SinpeIbanPaymentInfo(AddedSinpeIban, PaymentInfoID, paymentMethod.Name);
+                    await SinpeIbanPaymentInfoService.AddPaymentInfoAsync(sinpeIbanPI);
+                    await AddSinpeIbanInfo(PaymentInfoID);
+                }
+            }
+        }
+    }
+
+    private async Task AddSinpeIbanInfo(int PaymentInfoID)
+    {
+        HasPaymentInfo HasPaymentInfo = new HasPaymentInfo(Email, PaymentInfoID);
+        await HasPaymentInfoService.AddHasPaymentInfoAsync(HasPaymentInfo);
+        list.Add(HasPaymentInfo);
+        _sinpeIbanPaymentInfoList = await SinpeIbanPaymentInfoService.GetSinpeIbanPaymentInfosByPaymentInfoIDAsync(list);
+    }
+
+    protected async Task RemovePaymentInformation()
+    {
+        await PaymentInfoService.RemovePaymentInfoAsync(PaymentInfoIdToRemove);
+        var itemToRemove = list.SingleOrDefault(r => r.Payment_Info_ID == PaymentInfoIdToRemove);
+        if (itemToRemove != null)
+            list.Remove(itemToRemove);
+        _sinpeIbanPaymentInfoList = await SinpeIbanPaymentInfoService.GetSinpeIbanPaymentInfosByPaymentInfoIDAsync(list);
+        CloseConfirmationDialog();
+        StateHasChanged();
+    }
+} 

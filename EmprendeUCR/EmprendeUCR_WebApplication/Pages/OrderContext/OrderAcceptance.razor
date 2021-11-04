@@ -1,0 +1,486 @@
+﻿@page "/OrderAcceptance"
+
+@using EmprendeUCR_WebApplication.Application.OrderContext
+@using EmprendeUCR_WebApplication.Domain.OrderContext.Entities
+@using EmprendeUCR_WebApplication.Domain.Core.CoreEntities
+@using EmprendeUCR_WebApplication.Data.Entities.ContextShop
+@using EmprendeUCR_WebApplication.Application.BillContext
+@using EmprendeUCR.Application.RegisterContext
+@using EmprendeUCR.Application.ProfileContext
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using System.IO;
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage;
+@inject IRegisterService RegisterService
+@inject IOrderService OrderService;
+@inject IBillService BillService;
+@inject IProfileService ProfileService;
+@inject IJSRuntime js
+@* Display "Cargando" message while shopping cart is still loading. *@
+@if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="mt-5 order-acceptance w-100 h-100 d-flex justify-content-around m-auto">
+
+        <div class="w-70 lista-items h-100 bg-white d-flex flex-column align-items-center" id="Orders">
+            <div class="w-90 row d-flex justify-content-around my-5 fs-2">
+                <p class="text-start">Ordenes</p>
+            </div>
+
+            <div class="w-90 row d-flex justify-content-around align-items-center">
+                <div class="col-3 text-center fs-5">Fecha y hora de creación</div>
+                <div class="col-3 text-center fs-5">Cliente</div>
+                <div class="col-2 text-center fs-5">Fecha de entrega</div>
+                <div class="col-2 text-center fs-5">Estado</div>
+                <div class="col-2 text-center fs-5">Detalles</div>
+            </div>
+
+            <div class="flex-column d-flex align-items-center w-100 my-4 d-flex justify-content-around">
+                @{
+                    int i = 0;
+                }
+                @foreach (var order in _orders)
+                {
+                    int orderNumber = i;
+                    <div class="w-90 row border-grey mb-5 d-flex align-content-center py-5">
+                        <div class="col-3 text-center d-inline-flex align-items-center"
+                             @onclick="() => getProducts(order)"
+                             style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                            @*
+                                This line displays the order date and hour of creation.
+                            *@
+                            <p class="fs-6 m-auto">@order.DateAndHourCreation.ToString()</p>
+                        </div>
+
+                        <div class="col-3 text-center d-inline-flex align-items-center"
+                             @onclick="() => getProducts(order)"
+                             style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                            @*
+                                This line displays the order client email.
+                            *@
+                            <p class="fs-6 m-auto text-break">@order.ClientEmail</p>
+                        </div>
+
+                        <div class="col-2 d-inline-flex align-items-center"
+                             @onclick="() => getProducts(order)"
+                             style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                            @*
+                                This line displays the order delivery date.
+                            *@
+                            <p class="fs-6 m-auto">@order.DeliveryDate.ToString("d") </p>
+                        </div>
+
+                        <div class="col-2 d-flex flex-row justify-content-center">
+
+                            <button @onclick="() => getProducts(order)" class="btn btn-outline-success me-3"
+                                    data-bs-target="#billing_management" data-bs-toggle="modal" data-bs-dismiss="modal">
+                                Aceptar
+                            </button>
+
+                            <button @onclick="() => DeleteOrder(_orders[orderNumber].DateAndHourCreation, _orders[orderNumber].ClientEmail,false)" class="btn btn-outline-danger">Rechazar</button>
+
+                        </div>
+
+                        <div class="col-2 d-inline-flex align-items-center justify-content-center">
+                            @*
+                                This line displays the order details button.
+                            *@
+                            <button type="button" class="btn bg-orange" @onclick="() => getProducts(order)" 
+                                    style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#pending_orders_summary">
+                                Detalles
+                            </button>
+                        </div>
+                    </div>
+                    i++;
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+    @* Show the summary of the billing information *@
+    <div class="modal fade" id="billing_management" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content p-3">
+
+                <div class="modal-header">
+                    <p class="fs-2 modal-title" id="order_summary_label">Informacion de facturacion</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                @if (_products != null)
+                {
+                    <div class="modal-body flex-column">
+
+                        <div class="row mb-2">
+                            <div class="col-5 fs-6 content-center">Productos solicitados</div>
+                            <div class="col-3 fs-6 content-center align-self-center text-center">Cantidad Solicitada</div>
+                            <div class="col-4 fs-6 content-center">Precio</div>
+                        </div>
+
+                        @foreach (var product in _products)
+                        {
+                            <div class=" height-100 row mb-1 py-2 d-flex align-content-center">
+                                <div class="col-5 text-center">
+                                    @*
+                            This line displays the product name.
+                                    *@
+                                    <p class="fs-6 m-auto">@product.Item2.ProductName</p>
+                                </div>
+
+                                <div class="col-3 text-center">
+                                    @*
+                            This line displays the product quantity.
+                                    *@
+                                    <p class="fs-6 m-auto">@product.Item1</p>
+                                </div>
+
+                                <div class="col-4 text-center">
+                                    @*
+                            This line displays the product currentPrice, multiplied by the quantity.
+                                    *@
+                                    <p class="fs-6 m-auto">
+                                        <span>₡ </span>
+                                        @(product.Item2.currentPrice*product.Item1)
+                                    </p>
+                                </div>
+                            </div>
+                        }
+
+                        <p class="w-90 fs-6 text-end">
+                            Monto total:
+                            <span> ₡ </span>
+                            @totalAmount
+                        </p>
+                    </div>
+
+                    <div class="height-100 row mb-1 py-2 d-flex align-content-center">
+
+                        <div class="col-5 fs-6 content-center">
+                            <p class="">Fecha de pago:</p>
+                            @DateTime.Now.ToString("MM/dd/yyyy")
+                        </div>
+
+                        <div class="col-3 fs-6 content-center">
+                            <p class="fs-6">Correo del cliente:</p>
+                            @orderToAccept.ClientEmail
+                        </div>
+
+                        <div class="col-4 fs-6 content-center">
+                            <p class="fs-6">Correo del emprendedor:</p>
+                            @orderToAccept.EntrepreneurEmail
+                        </div>
+
+                    </div>
+
+                    <div class="height-100 row mb-1 py-2 d-flex align-content-center">
+
+                        <div class="col-5 fs-6 content-center">
+                            <p class="fs-6">Metodo de pago:</p>
+                            @currentOrder.PaymentName
+                        </div>
+
+                        <div class="col-3 fs-6 content-center">
+                            <p class="fs-6">Nombre del cliente:</p>
+                            @clientName
+                        </div>
+
+                        <div class="col-4 fs-6 content-center">
+                            <p class="fs-6">Nombre del emprendedor:</p>
+                            @entrepreneurName
+                        </div>
+
+                    </div>
+
+                    <div class="height-100 row mb-1 py-2 d-flex align-content-center">
+
+                        <div class="col-5 fs-6 content-center">
+                            <p class="fs-6">Correo destino:</p>
+                            <input @bind="emailToSendBill" type="email">
+                        </div>
+
+                    </div>
+                }
+
+                <div class="modal-footer">
+
+                    <button @onclick="() => AcceptAndGenerateBill(orderToAccept)"
+                            type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Aceptar y generar factura
+                    </button>
+
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    @* Show the summary of the orders *@
+    <div class="modal fade" id="pending_orders_summary" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content p-3">
+                <div class="modal-header">
+                    <p class="fs-2 modal-title" id="order_summary_label">Resumen del pedido</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                @if (_products != null)
+                {
+                    <div class="modal-body flex-column">
+
+                        <div class="row mb-2">
+                            <div class="col-5 fs-6 content-center">Productos solicitados</div>
+                            <div class="col-3 fs-6 content-center align-self-center text-center">Cantidad Solicitada</div>
+                            <div class="col-4 fs-6 content-center">Precio</div>
+                        </div>
+
+                        @foreach (var product in _products)
+                        {
+                            <div class=" height-100 row mb-1 py-2 d-flex align-content-center">
+                                <div class="col-5 text-center">
+                                    @*
+                                        This line displays the product name.
+                                    *@
+                                    <p class="fs-6 m-auto">@product.Item2.ProductName</p>
+                                </div>
+
+                                <div class="col-3 text-center">
+                                    @*
+                                        This line displays the product quantity.
+                                    *@
+                                    <p class="fs-6 m-auto">@product.Item1</p>
+                                </div>
+
+                                <div class="col-4 text-center">
+                                    @*
+                                        This line displays the product price, multiplied by the quantity.
+                                    *@
+                                    <p class="fs-6 m-auto">
+                                        <span>₡ </span>
+                                        @(product.Item2.currentPrice*product.Item1)
+                                    </p>
+                                </div>
+                            </div>
+                        }
+
+                        <p class="w-90 fs-6 text-end">
+                            Monto total:
+                            <span> ₡ </span>
+                            @totalAmount
+                        </p>
+                    </div>
+
+                    <p class="fs-6 text-center">Requerimientos:</p>
+                    <div class="w-90 border-grey mb-5 m-auto align-items-center content-center overflow-auto height-150">
+                        <p class="fs-6 text-start text-break">@currentOrder.Details</p>
+                    </div>
+
+                    @* Delivery address *@
+                    <p class="fs-6 text-center">Direccion de entrega:</p>
+                    <div class="w-70 mb-5 m-auto align-items-center content-center overflow-auto">
+                        <p class="fs-6 text-break text-center">@currentOrder.DeliveryAddress</p>
+                    </div>
+
+                    <div class="w-100 mb-5 d-flex flex-row">
+
+                        @* Payment method *@
+                        <div class="col-4">
+                            <p class="fs-6 text-center">
+                                Metodo de pago:<br/>
+                                @currentOrder.PaymentName
+                            </p>
+                        </div>
+
+                        @* Delivery date *@
+                        <div class="col-4">
+                            <p class="fs-6 text-center">
+                                Fecha solicitada:<br/>
+                                @currentOrder.DeliveryDate.ToString("MM/dd/yyyy")
+                            </p>
+                        </div>
+
+                        @* Client email *@
+                        <div class="col-4">
+                            <p class="fs-6 text-center">
+                                Cliente:<br/>
+                                @currentOrder.ClientEmail
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+
+    // Loading page variable.
+    private bool _isLoading = true;
+
+    // List or oders asociated to the entrepreneur
+    private List<Order> _orders;
+
+    // List of tuples containig the products and each amount of said products.
+    private List<Tuple<int,  EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product>> _products;
+
+    // Object order to hold the current Order
+    private Order currentOrder;
+
+    // Email associated to entrepreneur
+    string entrepreneurEmail = "";
+    int totalAmount = 0;
+
+    // Order to be accepted and used to create the bill
+    private Order orderToAccept;
+
+    // Email to send the pdf document corresponding to the bill.
+    string emailToSendBill = "";
+
+    // Names of both the entrepreneur and the client
+    string entrepreneurName = "";
+    string clientName = "";
+
+    /*
+      Summary: Overridden method from Blazor that is invoked when the page is loaded
+      Fetchs the userEmail and the orders related to such email. Sets loading to false.
+      Fetchs the entrepreneur name making use of the GetUser function from the Profile Service.
+      Parameters: Method does not recieve parameters
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected override async Task OnInitializedAsync()
+    {
+        entrepreneurEmail = await sessionStorage.GetItemAsync<string>("Email");
+
+        var entrepeneur = await ProfileService.GetUser(entrepreneurEmail);
+        entrepreneurName = entrepeneur.Name + " " + entrepeneur.F_Last_Name + " " + entrepeneur.S_Last_Name;
+
+        _orders = await OrderService.GetEntrepreneurOrders(entrepreneurEmail);
+        _isLoading = false;
+    }
+
+    /*
+      Summary: Method dedicated to delete a given order after it has been answered (Acepted or reyected).
+      Parameters: Recieves the date and hour of creation of said order, the associated email as string
+      and a boolean with the answer.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected async Task DeleteOrder(DateTime dateAndHourCreation, string email, bool answer)
+    {
+
+        _orders = await OrderService.sendAnswer(dateAndHourCreation, email, answer, _orders);
+        await Task.Delay(0);
+    }
+
+    /*
+      Summary: Method dedicated to call the function associated with the pdf creation, and then calls for the Delete
+                Order method, which eliminates the order from the view once it has been accepted.
+      Parameters: receives an order object
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected async Task AcceptAndGenerateBill(Order order)
+    {
+        createBillingPdf(order,entrepreneurName,clientName);
+        sendBillToClient(order);
+        await DeleteOrder(order.DateAndHourCreation, order.ClientEmail, true);
+    }
+
+    /*
+      Summary: Method dedicated to get the name of the client associated to an order. It uses the method GetUser from the ProfileService 
+      Parameters: no parameters
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected async Task getName()
+    {
+        var client = await ProfileService.GetUser(orderToAccept.ClientEmail);
+        clientName = client.Name + " " + client.F_Last_Name + " " + client.S_Last_Name;
+    }
+
+    /*
+      Summary: Method dedicated to create the pdf with the billing information. 
+      Parameters: Method recieves an Order object as parameter, as well as the names of both the client and the entrepreneur.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void createBillingPdf(Order order, string entrepreneurName, string clientName)
+    {
+        BillService.createBill(js, order, OrderService.GetProducts(order), clientName, entrepreneurName);
+    }
+
+        /*
+      Summary: Method to send an order's bill to its owner. It first creates a
+               PDF file and writes it to disk. Once done, the method attaches the
+               PDF's path as an attachment to the recently created Mail object.
+               Then, with the bill as attachment and the rest of important
+               spaces populated, the mail is sent to the customer via RegisterService.
+               Finally, a bolean value is switched to true to display a confirmation
+               message to the sending entrepreneur.
+      Parameters: An Order object, used to extract relevant information from and
+                  to create the bill with such information.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void sendBillToClient(Order order)
+    {
+       if(emailToSendBill == ""){
+        emailToSendBill = order.ClientEmail;
+       }
+       byte[] pdfBillBytes = BillService.returnBillBytes(js, 
+                                                        order, 
+                                                        OrderService.GetProducts(order), 
+                                                        clientName, 
+                                                        entrepreneurName);
+       Mail emailWithBill = new Mail();
+       emailWithBill.Subject = "Factura de su más reciente orden";
+       emailWithBill.ToMailIds.Add(emailToSendBill);
+       File.WriteAllBytes("Factura_Orden.pdf", pdfBillBytes);
+       emailWithBill.Attachements.Add("Factura_Orden.pdf");
+       emailWithBill.Body = String.Format("<h1>¡Hola!<h1> <h3>Gracias por elegir EmprendeUCR. La factura de su compra a {0} se encuentra adjunta<h3>",
+                                            entrepreneurName);
+       RegisterService.sendEmail(emailWithBill);
+   }
+
+    /*
+      Summary: Method dedicated to get the products of a given order. It makes use of a service called GetProducts
+      Parameters: Method recieves an Order object as parameter.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async void getProducts(Order order)
+    {
+        totalAmount = 0;
+        currentOrder = order;
+        orderToAccept = order;
+        await getName();
+        _products = OrderService.GetProducts(order);
+        setTotalAmount(_products);
+        StateHasChanged();
+    }
+
+    /*
+      Summary: This method takes a list of tuples (Products and int) and calculates a total price with the product price and
+      the amount of said product.
+      Parameters: Method recieves a list of tuples with a Product Object and an int.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void setTotalAmount(List<Tuple<int,  EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product>> products)
+    {
+        foreach (Tuple<int, EmprendeUCR_WebApplication.Domain.Core.CoreEntities.Product> tuple in products)
+        {
+            totalAmount += tuple.Item2.currentPrice * tuple.Item1;
+        }
+    }
+}

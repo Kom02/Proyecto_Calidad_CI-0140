@@ -1,0 +1,4 @@
+﻿CREATE PROCEDURE getOfferProducts
+AS
+SELECT TOP 30 * FROM Product
+ORDER BY Price ASC;

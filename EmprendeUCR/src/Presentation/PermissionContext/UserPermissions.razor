@@ -1,0 +1,205 @@
+﻿@page "/userPermissions"
+
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Application.PermissionContext
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject IPermissionService PermissionService
+@inject NavigationManager NavigationManager
+
+@if (loading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    getUser(userEmail);
+    <h5>Permisos de: @findUser.Name @findUser.F_Last_Name @findUser.S_Last_Name</h5>
+    <h6> Correo: @findUser.Email</h6>
+    <div class="dataPermission">
+        <table class="table">
+            <thead class="table-black">
+                <tr>
+                    <th scope="col" class="th">Rol</th>
+                    <th scope="col" class="th">Permisos</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var role in userRols)
+                {
+                    switch (role)
+                    {
+                        case 1:
+                            actualRol = "Administrador";
+                            break;
+                        case 2:
+                            actualRol = "Cliente";
+                            break;
+                        case 3:
+                            actualRol = "Emprendedor";
+                            break;
+                    }
+                    <tr>
+                        <td class="td primary_title">@actualRol</td>
+                        <td>
+                            @foreach (var permission in permissions)
+                            {
+                                if (permission.Role_Id == role)
+                                {
+                                    <div class="form-check form-switch">
+                                        @if (userPermissionsId.Contains(permission.Id))
+                                        {
+                                            <input class="form-check-input" type="checkbox" value="" id="permissionCheck" checked @onclick="() => updatePermission(permission.Id, permission.Role_Id)">
+                                        }
+                                        else
+                                        {
+                                            <input class="form-check-input" type="checkbox" value="" id="permissionCheck" @onclick="() => updatePermission(permission.Id, permission.Role_Id)">
+                                        }
+                                        <label class="form-check-label tableLabel secondary_title" for="permissionCheck">
+                                            @permission.Description
+                                        </label>
+                                    </div>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <center>
+        <button class="btn btn-primary botonAccept" @onclick="changePermissions" data-bs-toggle="modal" data-bs-target="#permissionsModal" disabled="@isDisabled">Aceptar</button>
+    </center>
+
+    <!-- Modal -->
+    <div class="modal" tabindex="-1" id="permissionsModal" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Permisos @userEmail</h5>
+                </div>
+                <div class="modal-body center">
+                    <p>Permisos modificados con éxito.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @onclick="returnListPermissions">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@code {
+    private bool loading = true;
+    private IList<Is_Able_To> userPermisions = new List<Is_Able_To>();
+    private IList<Role> roles = new List<Role>();
+    private IList<Permission> permissions = new List<Permission>();
+    private string userEmail = "";
+    private IList<int> userRols = new List<int>();
+    private string actualRol = "";
+    private IList<int> userPermissionsId = new List<int>();
+    private IList<Is_Able_To> userNewPermissions = new List<Is_Able_To>();
+    private IList<int> userNewPermissionsId = new List<int>();
+
+    private User findUser = null;
+
+    private bool isDisabled = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("hashEmail", out var parameter))
+        {
+            userEmail = PermissionService.getEmailByHash(parameter);
+        }
+
+        userPermisions = await PermissionService.getPermissionsByUser(userEmail);
+        userNewPermissions = userPermisions.ToList();
+        roles = await PermissionService.getAllRoles();
+        permissions = await PermissionService.getAllPermisions();
+
+        Administrator administrator = PermissionService.getAdministrator(userEmail);
+        Client client = PermissionService.getClient(userEmail);
+        Entrepreneur entrepreneur = PermissionService.getEntrepreneur(userEmail);
+
+        if(administrator != null)
+        {
+            userRols.Add(1);
+        }
+        if (client != null)
+        {
+            userRols.Add(2);
+        }
+        if (entrepreneur != null)
+        {
+            userRols.Add(3);
+        }
+
+        for (int i = 0; i < userPermisions.Count(); i++)
+        {
+            userPermissionsId.Add(userPermisions[i].Permission_Id);
+            userNewPermissionsId.Add(userNewPermissions[i].Permission_Id);
+        }
+
+        loading = false;
+    }
+
+    public void changePermissions()
+    {
+        PermissionService.updateUserPermissions(userEmail, userNewPermissions);
+    }
+
+    public void updatePermission(int permissionId, int roleId)
+    {
+        int permissionIndex = userNewPermissionsId.IndexOf(permissionId);
+        if (permissionIndex == -1)
+        {
+            Is_Able_To newUserPermission = new Is_Able_To
+            {
+                Email = userEmail,
+                Permission_Id = permissionId,
+                Role_Id = roleId
+            };
+            userNewPermissions.Add(newUserPermission);
+            userNewPermissionsId.Add(permissionId);
+        }
+        else
+        {
+            userNewPermissions.RemoveAt(permissionIndex);
+            userNewPermissionsId.RemoveAt(permissionIndex);
+        }
+
+        if(userPermissionsId.Count() == userNewPermissionsId.Count())
+        {
+            int counter = 0;
+            for (int i=0; i < userNewPermissionsId.Count(); i++)
+            {
+                if (userPermissionsId.Contains(userNewPermissionsId[i])){
+                    counter++;
+                }
+            }
+            if(counter == userNewPermissions.Count())
+            {
+                isDisabled = true;
+            } else
+            {
+                isDisabled = false;
+            }
+        } else
+        {
+            isDisabled = false;
+        }
+    }
+
+    public void returnListPermissions()
+    {
+        NavigationManager.NavigateTo("/listPermissions");
+    }
+
+    public void getUser(string email)
+    {
+        findUser = PermissionService.getUserByEmail(email);
+    }
+}

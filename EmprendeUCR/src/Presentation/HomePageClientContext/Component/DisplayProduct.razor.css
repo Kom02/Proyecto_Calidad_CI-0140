@@ -1,0 +1,41 @@
+﻿.productImage {
+    width: 200px;
+    height: 230px;
+    border-radius: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.displayRow {
+    display: flex;
+    flex-direction: row;
+}
+
+.displayCol {
+    display: flex;
+    flex-direction: column;
+}
+
+.secondary_title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.productDetails {
+    margin-top: 4%;
+}
+
+.displayProduct {
+    display: flex;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+}
+
+.bontonCerrar {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+}

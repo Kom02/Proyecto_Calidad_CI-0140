@@ -1,0 +1,569 @@
+@page "/setPermissions"
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Application.PermissionContext
+@using System.Collections.Generic 
+@inject IPermissionService PermissionService
+
+<!--HTML-->
+@if(isLoading)
+{
+	<div class="d-flex justify-content-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+}
+else
+{
+	<div class="container px-4">
+  		<div class="row gx-5">
+
+  			<!--Users-->
+            <div class="col-4">
+                <h3>Usuarios</h3>
+                <div class="flex-buscar">
+                    <input class="form-control searchBar" placeholder="Buscar usuario por nombre y correo" type="search" @oninput="@search"/>
+                </div>
+                <div class="usersArea">
+                    @if(usersToShow.Any())
+                    {
+                        foreach(var user in users)
+                        {
+                            string value = user.Email;
+                            if(usersToShow.Contains(user))
+                            {
+                                if(email.Equals(value))
+                                {
+                                    <div class="p-3 border bg-light">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="radio" name="userRadio" @onclick="() => selectUser(value)" checked>
+                                            <!-- Button trigger modal -->
+                                            <button class="btn btn-light" @onclick="() => setUserToShow(user)" data-bs-toggle="modal" data-bs-target="#dataModal">
+                                                @value
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="p-3 border bg-light">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="radio" name="userRadio" @onclick="() => selectUser(value)" unchecked>
+                                            <!-- Button trigger modal -->
+                                            <button class="btn btn-light" @onclick="() => setUserToShow(user)" data-bs-toggle="modal" data-bs-target="#dataModal">
+                                                @value
+                                            </button>
+                                        </div>
+                                    </div>
+                                }  
+                            }
+                            else
+                            {
+                                @if(email.Equals(value))
+                                {
+                                    email = "";
+                                    resetRoleAvailability();
+                                    role = 0;
+                                    permission = 0;
+                                }
+                            }   
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-3 border bg-light">
+                            <p>No se encontraron usuarios</p>
+                        </div>
+                    }	
+                </div>
+            </div>		
+
+    		<!--Roles-->
+            <div class="col-3">
+                <h3>Roles</h3>
+                @if(!email.Equals(""))
+                {
+                    foreach(var _role in roles)
+                    {
+                        int value = _role.Id;
+                        if(roleAvailability[_role.Type] == 1)
+                        {
+                            if(role == value)
+                            {
+                                <div class="p-3 border bg-light">
+                                    <div class="form-check  form-switch">
+                                        <input class="form-check-input" type="radio" name="roleRadio" @onclick="() => selectRole(value)" checked>
+                                        <label class="form-check-label">@_role.Type</label>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-3 border bg-light">
+                                    <div class="form-check  form-switch">
+                                        <input class="form-check-input" type="radio" name="roleRadio" @onclick="() => selectRole(value)" unchecked>
+                                        <label class="form-check-label">@_role.Type</label>
+                                    </div>
+                                </div>
+                            }                            
+                        }
+                        else if(role == value)
+                        {
+                            role = 0;
+                            permission = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="p-3 border bg-light">
+                        <p>Seleccione un usuario</p>
+                    </div>
+                }
+            </div>
+
+    		<!--Permissions-->
+    		<div class="col-5">
+    			<h3>Permisos</h3>
+                @if(role != 0)
+                {
+                    foreach(var _permission in permissions)
+                    {
+                        int value = _permission.Id;
+                        if(role == _permission.Role_Id)
+                        {
+                            if(permission == value)
+                            {
+                                <div class="p-3 border bg-light">
+                                    <div class="form-check  form-switch">
+                                        <input class="form-check-input" type="radio" name="permissionRadio" @onclick="() => selectPermission(value)" checked>
+                                        <label class="form-check-label">@_permission.Description</label>
+                                    </div>
+                                </div>    
+                            }
+                            else
+                            {
+                                <div class="p-3 border bg-light">
+                                    <div class="form-check  form-switch">
+                                        <input class="form-check-input" type="radio" name="permissionRadio" @onclick="() => selectPermission(value)" unchecked>
+                                        <label class="form-check-label">@_permission.Description</label>
+                                    </div>
+                                </div>    
+                            }
+                        }
+                        else if(permission == value)
+                        {
+                            permission = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="p-3 border bg-light">
+                        <p>Seleccione un rol</p>
+                    </div>
+                }
+    		</div>
+
+  		</div>
+	</div>
+    <br/>
+
+	<!--Button-->
+	<div class="d-grid gap-2 col-3 mx-auto">
+  		<button class="btn btn-primary" @onclick="saveNewPermission">Agregar permiso</button>
+	</div>
+    <br/>
+
+    <div class="d-grid gap-2 col-6 mx-auto">
+        @if(message != "")
+        {
+            <p class="errorMessage">@message</p>
+            message = "";
+        }
+    </div>
+
+    @if(updates){
+        <br/><br/><hr/><br/><h3>Nuevos permisos</h3><br/>
+        
+        <div class="container-sm">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Índice</th>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Correo</th>
+                        <th scope="col">Rol</th>
+                        <th scope="col">Permiso</th>
+                        <th scope="col">Deshacer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int length = newData.Count();
+                        int row = 0;
+                    }
+                    @for(int index = 0; index < length; index += SIZE)
+                    {
+                        ++row;
+                        int dataIndex = row; 
+                        <tr>
+                            <td>@row</td>
+                            <td>@newData[index]</td>
+                            <td>@newData[index+1]</td>
+                            <td>@newData[index+2]</td>
+                            <td>@newData[index+3]</td>
+                            <td>
+                                <button class="btn btn-danger" @onclick="() => revertChanges(dataIndex)">Revertir</button>
+                            </td>
+                        </tr>    
+                    }
+                </tbody>
+            </table>
+        </div>
+        <br/>
+
+        <div class="container px-4">
+  		    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button class="btn btn-danger" @onclick="deleteChanges">Cancelar</button>
+                <button class="btn btn-primary" @onclick="storeChanges">Aplicar</button>
+            </div>
+        </div>
+    }
+
+    <!--Feedback-->
+    <div class="d-grid gap-2 col-6 mx-auto">
+        @if(feedbackMessage)
+        {
+            if(errorFeedbackMessage.Any())
+            {
+                <p class="errorMessage">Estos permisos ya existen:</p>
+                foreach(var message in errorFeedbackMessage)
+                {
+                    <p class="errorMessage">@message</p>
+                }
+                errorFeedbackMessage.Clear();
+            }
+            if(successFeedbackMessage.Any())
+            {
+                <p class="successMessage">Permisos aplicados con éxito:</p>
+                foreach(var message in successFeedbackMessage)
+                {
+                    <p class="successMessage">@message</p>
+                }
+                successFeedbackMessage.Clear();
+            }
+            feedbackMessage = false;
+        }
+    </div>
+}
+
+<!-- Modal -->
+<div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dataModalLabel">
+                    @modalUser.Name @modalUser.F_Last_Name @modalUser.S_Last_Name
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @{
+                    string birthDay = @modalUser.Birth_Date.ToString();
+                }
+                <div class="modalData">
+                    <p><strong>Fecha de nacimiento:</strong> @birthDay.Substring(0, birthDay.IndexOf(" "))</p>
+                </div>
+                <div class="modalData">
+                    <p><strong>Dirección:</strong> @modalUser.District_Name, @modalUser.Canton_Name, @modalUser.Province_Name</p>
+                </div>
+                <div class="modalData">
+                    @if(modalUser.Photo != null)
+                    {
+                        <p><strong>Foto de perfil:</strong></p>
+                        <img src="data:image;base64,@System.Convert.ToBase64String(modalUser.Photo)"/>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code{
+    private const int SIZE = 4;
+    // Loading page
+    private bool isLoading = true;
+    private bool updates = false;
+    // Data to give permissions
+    private IList<User> users;
+    private IList<User> usersToShow;
+    private IList<Role> roles;
+    private IList<Permission> permissions;
+    // Selected values
+    //private List<string> emails = new List<string>();
+    private string email = "";
+    private Dictionary<string, int> roleAvailability = new Dictionary<string, int>();
+    private int role = 0;
+    private int permission = 0;
+    // Feedback variables
+    private string message = "";
+    private IList<string> errorFeedbackMessage = new List<string>();
+    private IList<string> successFeedbackMessage = new List<string>();
+    private bool feedbackMessage = false;
+    // Updates data
+    private List<string> newData = new List<string>();
+    // Search data
+    private string searchValue = "";
+    // Modal data
+    private User modalUser = new User{};
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await PermissionService.getAllUsers();
+        deleteConflictiveUsers();
+        usersToShow = new List<User>(users);
+        roles = await PermissionService.getAllRoles();
+        permissions = await PermissionService.getAllPermisions();
+        roleAvailability.Add("Administrator", 0);
+        roleAvailability.Add("Client", 0);
+        roleAvailability.Add("Entrepreneur", 0);
+        isLoading = false;
+    }
+
+    public void selectUser(string selectedEmail)
+    {
+        email = selectedEmail;
+        resetRoleAvailability();
+        setRoleAvailability();
+    }
+
+    public void setRoleAvailability()
+    {
+        Administrator administrator = PermissionService.getAdministrator(email);
+        Client client = PermissionService.getClient(email);
+        Entrepreneur entrepreneur = PermissionService.getEntrepreneur(email);
+
+        if(administrator != null)
+        {
+            roleAvailability["Administrator"] = 1;
+        }
+
+        if(client != null)
+        {
+            roleAvailability["Client"] = 1;
+        }
+
+        if(entrepreneur != null)
+        {
+            roleAvailability["Entrepreneur"] = 1;
+        }
+    }
+
+    public void resetRoleAvailability()
+    {
+        roleAvailability["Administrator"] = 0;
+        roleAvailability["Client"] = 0;
+        roleAvailability["Entrepreneur"] = 0;
+    }
+
+    public void selectRole(int selectedRole)
+    {
+        role = selectedRole;
+    }
+
+    public void selectPermission(int selectedPermission)
+    {
+        permission = selectedPermission;
+    }
+
+    public bool verifyUserSelected()
+    {
+        if(!email.Equals(""))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public bool verifyRoleSelected()
+    {
+        if(role != 0)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public bool verifyPermissionSelected()
+    {
+        if(permission != 0)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public void saveNewPermission()
+    {
+        if(verifyUserSelected() && verifyRoleSelected() && verifyPermissionSelected())
+        {
+            message = "";
+            saveUpdate();
+            updates = true;
+        }
+        else
+        {
+            message = "Seleccione un elemento de cada columna";
+        }
+    }
+
+    public void saveUpdate()
+    {
+        User selectedUser = users.FirstOrDefault(c => c.Email == email);
+        string roleType = roles.FirstOrDefault(c => c.Id == role).Type;
+        string permissionDescription = permissions.FirstOrDefault(c => c.Id == permission).Description;
+        if(verifyNewPermissions(roleType, permissionDescription))
+        {
+            newData.Add(selectedUser.Name + " " + selectedUser.F_Last_Name + " " + selectedUser.S_Last_Name);
+            newData.Add(email);
+            newData.Add(roleType);
+            newData.Add(permissionDescription);
+        }
+    }
+
+    public bool verifyNewPermissions(string role, string description)
+    {
+        int length = newData.Count();
+        for(int i = 0; i < length; i += SIZE)
+        {
+            if(newData[i+1].Equals(email) && newData[i+2].Equals(role) && newData[i+3].Equals(description))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void revertChanges(int index)
+    {
+        int indexToDelete = index * SIZE - SIZE;
+        for(int i = 0; i < SIZE; ++i)
+        {
+            newData.RemoveAt(indexToDelete);
+        }
+        if(!newData.Any())
+        {
+            updates = false;
+        }
+    }
+
+    public void deleteChanges()
+    {
+        newData.Clear();
+        updates = false;
+    }
+
+    public async Task storeChanges()
+    {
+        int length = newData.Count();
+        for(int i = 0; i < length; i+=SIZE)
+        {
+            string userName = newData[i];
+            string userEmail = newData[i+1];
+            string permissionDescription = newData[i+3];
+            int permissionId = permissions.FirstOrDefault(c => c.Description.Equals(permissionDescription)).Id;
+            string roleType = newData[i+2];
+            int roleId = roles.FirstOrDefault(c => c.Type.Equals(roleType)).Id;
+            if(PermissionService.searchPermission(userEmail, permissionId, roleId) == null)
+            {
+                Is_Able_To newPermission = new Is_Able_To{
+                    Email = userEmail,
+                    Permission_Id = permissionId,
+                    Role_Id = roleId
+                };
+                await PermissionService.addPermission(newPermission);
+                successFeedbackMessage.Add("Usuario: " + userName + " Correo: " + userEmail + " Rol: " + roleType + " Permiso: " + permissionDescription);
+            }
+            else
+            {
+                errorFeedbackMessage.Add("Usuario: " + userName + " Correo: " + userEmail + " Rol: " + roleType + " Permiso: " + permissionDescription);
+            }
+        }
+        feedbackMessage = true;
+        deleteChanges();
+    }
+
+    public void search(ChangeEventArgs args)
+    {
+        string newsearchValue = (string)args.Value;
+        if(newsearchValue != searchValue)
+        {
+            searchValue = newsearchValue;
+            if(!string.IsNullOrEmpty(searchValue))
+            {
+                bool character = false;
+                int length = searchValue.Length;
+                int index = 0;
+                while(!character && index < length)
+                {
+                    if(!searchValue.ElementAt(index).Equals(' '))
+                    {
+                        character = true;
+                    }
+                    ++index;
+                }
+
+                if(character)
+                {
+                    searchData();
+                }
+            }
+            else
+            {
+                usersToShow = users.ToList();
+            }
+        }
+    }
+
+    public void searchData()
+    {
+        usersToShow.Clear();
+        foreach(var user in users)
+        {
+            if(user.Name.ToLower().Contains(searchValue.ToLower().Trim()) || 
+                user.Email.ToLower().Contains(searchValue.ToLower().Trim()))
+            {
+                usersToShow.Add(user);
+            }
+        }
+    }
+
+    public void setUserToShow(User user)
+    {
+        modalUser = user;
+    }
+
+    public void deleteConflictiveUsers()
+    {
+        List<int> indexToDelete = new List<int>();
+        int size = users.Count();
+        for(int i = 0; i < size; ++i)
+        {
+            if(users[i].Email == null || users[i].Name == null || users[i].F_Last_Name == null || users[i].S_Last_Name == null
+                || users[i].Birth_Date.ToString() == null || users[i].Province_Name == null || users[i].Canton_Name == null
+                || users[i].District_Name == null || users[i].Email_Confirmation == false)
+            {
+                indexToDelete.Insert(0, i);
+            }
+        }
+
+        foreach(var user in indexToDelete)
+        {
+            users.RemoveAt(user);
+        }
+    }
+}

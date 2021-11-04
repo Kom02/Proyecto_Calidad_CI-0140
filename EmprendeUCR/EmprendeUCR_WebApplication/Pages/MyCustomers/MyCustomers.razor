@@ -1,0 +1,33 @@
+﻿@page "/MyCustomers"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using EmprendeUCR_WebApplication.Application.OrderContext.Implementations
+@inject EntrepreneurService EntrepreneurService
+@inject ProductService ProductService
+@using Syncfusion.Blazor.TreeGrid;
+@inject Product_ServiceService Product_ServiceService
+@inject Product_PhotosService Product_PhotosService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject OrderService OrderService
+
+@if (_isLoading)
+{
+    <p>Cargando...</p> }
+else
+{
+    <body>
+        <h3>Mis Clientes</h3>
+        @*Llamamos al compontente para mostrar la tabla de Clientes del emprendedor*@
+        <EmprendeUCR_WebApplication.Pages.MyCustomers.CustomersReportView />
+    </body>
+}
+
+
+
+@code {
+    private bool _isLoading = true;
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = false;
+    }
+}

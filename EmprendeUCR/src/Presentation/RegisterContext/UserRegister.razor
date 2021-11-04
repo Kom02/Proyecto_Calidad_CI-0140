@@ -1,0 +1,267 @@
+﻿@page "/registro"
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Domain.RegisterContext.Entities
+@using EmprendeUCR.Application.RegisterContext
+@using Blazored.FluentValidation
+@inject IRegisterService RegisterService
+@inject NavigationManager NavManager
+@inject IJSRuntime JsRuntime
+<!--HTML-->
+<div class="flexDiv">
+    <div class="mainClass">
+        <h1>Registro de Usuarios</h1>
+        <EditForm Model="@newRegister" OnValidSubmit="@insertUser">
+            <FluentValidationValidator />
+
+            <!--Email input-->
+            <div class="marginElements">
+                <label for="exampleInputEmail1" class="form-label secondary_title">Correo electrónico:</label>
+                <InputText type="email" class="form-control inputClass" aria-describedby="emailHelp" id="exampleInputEmail1" @bind-Value="newRegister.Email" required />
+                <ValidationMessage For="@(()=> newRegister.Email)"> </ValidationMessage>
+                <div id="emailHelp" class="form-text">Nunca compartiremos su información personal</div>
+            </div>
+
+            <!--Password input-->
+            <div class="marginElements">
+                <label for="inputPassword5" class="form-label secondary_title">Contraseña:</label>
+                <InputText type="@pwdType" class="form-control inputClass" aria-describedby="passwordHelpBlock" id="inputPassword5" @bind-Value="newRegister.Password" required />
+                <ValidationMessage For="@(()=> newRegister.Password)"> </ValidationMessage>
+                <input type="checkbox" @onclick="@showPassword"> Mostrar Contraseña
+            </div>
+
+            <!--Confirm password input-->
+            <div class="marginElements">
+                <label for="inputPassword5" class="form-label secondary_title">Confirmar Contraseña:</label>
+                <InputText type="@pwdType" class="form-control inputClass" aria-describedby="passwordHelpBlock" id="inputPassword2" @bind-Value="newRegister.ConfirmPassword" required />
+                <ValidationMessage For="@(()=> newRegister.ConfirmPassword)"> </ValidationMessage>
+
+            </div>
+
+            <!--User type input-->
+            <p class="secondary_title marginElements">Seleccione su perfil:</p>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" @onclick="@selectClient" checked>
+                <label class="form-check-label" for="flexRadioDefault1">Cliente</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" @onchange="@selectEntrepreneur">
+                <label class="form-check-label" for="flexRadioDefault2">Emprendedor</label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault3" @onchange="@selectAdmin">
+                <label class="form-check-label" for="flexRadioDefault3">Administrador</label>
+            </div>
+            <!--Submit button-->
+            <center>
+                <button type="submit" class="btn btn-primary marginElements">@buttonMessage</button>
+
+                <p style="color:#FF0000">
+                    @Error_Message
+                </p>
+            </center>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    /*Register atributes*/
+    private User newUsuario = new User();
+    private Register newRegister = new Register();
+    private string pwdType = "password";
+    private string text = "Mostrar Contraseña";
+    public bool isRegistered = false;
+    private int type_user = 1;
+    private string Error_Message = "";
+    private string buttonMessage = "Registrarse";
+    private string hashEmail = "";
+    private string userPassword = "";
+    private string encrypUserPassword = "";
+
+    /*
+    Brief: Save the user client type.
+    Parameters:
+    Returns:
+    */
+    private void selectClient()
+    {
+        type_user = 1;
+    }
+
+    /*
+    Brief: Save the user entrepreneur type.
+    Parameters:
+    Returns:
+    */
+    private void selectEntrepreneur()
+    {
+        type_user = 2;
+    }
+
+    /*
+    Brief: Save the user admin type.
+    Parameters:
+    Returns:
+    */
+    private void selectAdmin()
+    {
+        type_user = 3;
+    }
+
+    /*
+    Brief: Insert the user to the database and send verify email.
+    Parameters:
+    Returns:
+    */
+    private async void insertUser()
+    {
+        /*All email toLower*/
+        newRegister.Email = newRegister.Email.ToLower();
+        isRegistered = RegisterService.verifyUserExistence(newRegister);
+        if (!isRegistered)
+        {
+            if (newRegister.ConfirmPassword == newRegister.Password)
+            {
+
+                registerUser();
+                NavManager.NavigateTo("/messagePage?type=4");
+            }
+            else
+            {
+                Error_Message = "Las contraseñas no coinciden, por favor verifiquelas.";
+            }
+        }
+        else
+        {
+            if (verifyTypeUser(newRegister.Email, type_user))
+            {
+                Error_Message = "El correo ya se ha registrado anteriormente con este tipo de cuenta.";
+            }
+            else
+            {
+                await getPassword(newRegister.Email);
+                if (userPassword != "")
+                {
+                    encrypPassword();
+                    if (verifyCredentials())
+                    {
+                        EmailConfirmation newEmail = getEmailConfirmation(newRegister.Email);
+                        NavManager.NavigateTo("/registroEncontrado?email=" + newEmail.Hash_Code + "&type=" + type_user);
+                    }
+                    else
+                    {
+                        Error_Message = "Las credenciales son incorrectas.";
+                    }
+                }
+            }
+        }
+        StateHasChanged();
+    }
+
+
+
+    /*
+    Brief: Get the email confirmation body.
+    Parameters Email_Confirmation email, Int userType.
+    Returns: Mail.
+    */
+    public Mail GetMail(EmailConfirmation email, int userType)
+    {
+        Mail mail = new Mail();
+        mail.Subject = "Confirmación de Email";
+        mail.Body = RegisterService.getMailBody(email.Hash_Code, userType);
+        mail.ToMailIds = new List<string>()
+    {
+           email.Email,
+        };
+        return mail;
+    }
+
+    /*
+    Brief: Show the password on the page.
+    Parameters:
+    Returns:
+    */
+    public void showPassword()
+    {
+        if (pwdType == "password")
+        {
+            pwdType = "text";
+            text = "Esconder Contraseña";
+        }
+        else
+        {
+            pwdType = "password";
+            text = "Mostrar Contraseña";
+        }
+    }
+
+    /*
+    Brief: Register an user.
+    Parameters:
+    Returns:
+    */
+    public async void registerUser()
+    {
+        string encryptPassword = RegisterService.encryptPassword(newRegister.Password);
+        string hashCorreo = RegisterService.hashEmail(newRegister.Email);
+
+        Credentials c = new Credentials
+        {
+            User_Email = newRegister.Email,
+            Password = encryptPassword,
+        };
+
+        User u = new User
+        {
+            Email = newRegister.Email,
+            Province_Name = "Alajuela",
+            Canton_Name = "Alajuela",
+            District_Name = "Alajuela",
+        };
+
+        EmailConfirmation e = new EmailConfirmation
+        {
+            Email = newRegister.Email,
+            Creation_Date = DateTime.Now,
+            Expiration_Date = DateTime.Now.AddDays(3),
+            Hash_Code = hashCorreo,
+        };
+
+        await RegisterService.insertNewUser(u);
+        await RegisterService.insertNewCredentials(c);
+        await RegisterService.insertNewEmailConfirmation(e);
+
+        Mail mail = this.GetMail(e, type_user);
+        await RegisterService.sendEmail(mail);
+    }
+
+    public bool verifyTypeUser(string email, int type)
+    {
+        return RegisterService.verifyUserTypes(email, type);
+    }
+
+    public EmailConfirmation getEmailConfirmation(string email)
+    {
+        return RegisterService.getEmailConfirmationByEmail(email);
+    }
+
+    public async Task getPassword(string email)
+    {
+        userPassword = await RegisterService.getUserPassword(email);
+    }
+
+    public void encrypPassword()
+    {
+        encrypUserPassword = RegisterService.encryptPassword(newRegister.Password);
+    }
+
+    public bool verifyCredentials()
+    {
+        if (encrypUserPassword == userPassword)
+        {
+            return true;
+        }
+        return false;
+    }
+}

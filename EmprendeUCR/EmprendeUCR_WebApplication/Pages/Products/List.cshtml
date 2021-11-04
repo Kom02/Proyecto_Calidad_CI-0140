@@ -1,0 +1,37 @@
+﻿@page  
+@model EmprendeUCR_WebApplication.Pages.Products.ListModel
+
+@{
+    ViewData["Title"] = "List";
+}
+
+<h1>List</h1>
+
+<p>
+    <a asp-page="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Product[0].Product_Description)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Product)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Product_Description)
+                </td>
+                <td>
+                    <a asp-page="./Edit" asp-route-id="@item.Code_ID">Edit</a> |
+                    <a asp-page="./Details" asp-route-id="@item.Code_ID">Details</a> |
+                    <a asp-page="./Delete" asp-route-id="@item.Code_ID">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

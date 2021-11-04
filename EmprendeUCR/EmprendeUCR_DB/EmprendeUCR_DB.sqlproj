@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>EmprendeUCR_DB</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{d168b2a6-a0fc-478c-980b-9bbc6d472b7c}</ProjectGuid>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql110DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootPath />
+    <RootNamespace>EmprendeUCR_DB</RootNamespace>
+    <AssemblyName>EmprendeUCR_DB</AssemblyName>
+    <ModelCollation>1033,CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndSchemaType</DefaultFileStructure>
+    <DeployToDatabase>True</DeployToDatabase>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVerification>False</SqlServerVerification>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+    <DefaultCollation>SQL_Latin1_General_CP1_CI_AS</DefaultCollation>
+    <DefaultFilegroup>PRIMARY</DefaultFilegroup>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
+    <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
+    <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <ItemGroup>
+    <Folder Include="Properties" />
+    <Folder Include="dbo\" />
+    <Folder Include="dbo\Tables\" />
+    <Folder Include="Security\" />
+    <Folder Include="dbo\Stored Procedures\" />
+    <Folder Include="dbo\Views\" />
+    <Folder Include="dbo\Functions\" />
+    <Folder Include="Service Broker\" />
+    <Folder Include="dbo\Scripts" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="dbo\Tables\Service.sql" />
+    <Build Include="dbo\Tables\AspNetUsers.sql" />
+    <Build Include="dbo\Tables\Client.sql" />
+    <Build Include="dbo\Tables\Entrepreneur.sql" />
+    <Build Include="dbo\Tables\Likes.sql" />
+    <Build Include="dbo\Tables\Members.sql" />
+    <Build Include="dbo\Tables\Phones.sql" />
+    <Build Include="dbo\Tables\Province.sql" />
+    <Build Include="dbo\Tables\User.sql" />
+    <Build Include="dbo\Tables\Canton.sql" />
+    <Build Include="dbo\Tables\Credentials.sql" />
+    <Build Include="dbo\Tables\District.sql" />
+    <Build Include="dbo\Tables\Category.sql" />
+    <Build Include="dbo\Tables\Product_Service.sql" />
+    <Build Include="dbo\Tables\Product.sql" />
+    <Build Include="dbo\Tables\Phones.sql" />
+    <Build Include="dbo\Tables\Members.sql" />
+    <Build Include="dbo\Tables\Entrepreneur.sql" />
+    <Build Include="dbo\Tables\District.sql" />
+    <Build Include="dbo\Tables\Credentials.sql" />
+    <Build Include="dbo\Tables\Canton.sql" />
+    <Build Include="dbo\Tables\AspNetUsers.sql" />
+    <Build Include="dbo\Tables\Administrator.sql" />
+    <Build Include="dbo\Tables\Client.sql" />
+    <Build Include="dbo\Tables\GetCantons.sql" />
+    <PostDeploy Include="dbo\Tables\Script.AddressData.sql" />
+    <Build Include="dbo\Tables\Shopping_Cart_Has_1.sql" />
+    <Build Include="dbo\Tables\Product_Photos_1.sql" />
+    <Build Include="dbo\Tables\Is_Offer_1.sql" />
+    <Build Include="dbo\Tables\Email_Confirmation.sql" />
+    <Build Include="dbo\Stored Procedures\User_Register.sql" />
+    <Build Include="dbo\Stored Procedures\getUserPassword.sql" />
+    <Build Include="dbo\Stored Procedures\GetQuantityProducts_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetPendingOrders.sql" />
+    <Build Include="dbo\Stored Procedures\GetDistricts.sql" />
+    <Build Include="dbo\Stored Procedures\AddProvince_1.sql" />
+    <Build Include="dbo\Tables\Report.sql" />
+    <Build Include="dbo\Tables\SINPE_Movil_PI.sql" />
+    <Build Include="dbo\Tables\Payment_Info.sql" />
+    <Build Include="dbo\Tables\Makes_Report.sql" />
+    <Build Include="dbo\Tables\Likes.sql" />
+    <Build Include="dbo\Tables\Keyword.sql" />
+    <Build Include="dbo\Tables\Administrator.sql" />
+    <Build Include="dbo\Tables\__EFMigrationsHistory.sql" />
+    <Build Include="dbo\Views\Product_Shopping_Cart.sql" />
+    <Build Include="dbo\Stored Procedures\mostrar_Preferidos.sql" />
+    <Build Include="dbo\Stored Procedures\getRecommendedProducts.sql" />
+    <Build Include="dbo\Stored Procedures\GetProductsRestricted.sql" />
+    <Build Include="dbo\Stored Procedures\GetProductsByCategory.sql" />
+    <Build Include="dbo\Stored Procedures\GetProducts.sql" />
+    <Build Include="dbo\Stored Procedures\GetOrders.sql" />
+    <Build Include="dbo\Stored Procedures\getOfferProducts.sql" />
+    <Build Include="dbo\Stored Procedures\getNewProducts.sql" />
+    <Build Include="dbo\Stored Procedures\GetEntrepreneurName.sql" />
+    <Build Include="dbo\Tables\Shopping_Cart_Has_1.sql" />
+    <Build Include="dbo\Tables\Product_Photos_1.sql" />
+    <Build Include="dbo\Tables\Keyword.sql" />
+    <Build Include="dbo\Tables\Is_Offer_1.sql" />
+    <Build Include="dbo\Tables\Email_Confirmation.sql" />
+    <Build Include="dbo\Tables\Administrator.sql" />
+    <Build Include="dbo\Views\Product_Shopping_Cart.sql" />
+    <Build Include="dbo\Stored Procedures\User_Register.sql" />
+    <Build Include="dbo\Stored Procedures\getUserPassword.sql" />
+    <Build Include="dbo\Stored Procedures\GetQuantityProducts_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetProducts.sql" />
+    <Build Include="dbo\Stored Procedures\GetPendingOrders.sql" />
+    <Build Include="dbo\Stored Procedures\GetDistricts.sql" />
+    <Build Include="dbo\Stored Procedures\AddProvince_1.sql" />
+    <Build Include="dbo\Tables\Report.sql" />
+    <Build Include="dbo\Tables\Payment_Info.sql" />
+    <Build Include="dbo\Tables\Makes_Report.sql" />
+    <Build Include="dbo\Tables\__EFMigrationsHistory.sql" />
+    <Build Include="dbo\Stored Procedures\mostrar_Preferidos.sql" />
+    <Build Include="dbo\Stored Procedures\getRecommendedProducts.sql" />
+    <Build Include="dbo\Stored Procedures\GetProductsRestricted.sql" />
+    <Build Include="dbo\Stored Procedures\GetProductsByCategory.sql" />
+    <Build Include="dbo\Stored Procedures\GetOrders.sql" />
+    <Build Include="dbo\Stored Procedures\getOfferProducts.sql" />
+    <Build Include="dbo\Stored Procedures\getNewProducts.sql" />
+    <Build Include="dbo\Stored Procedures\GetEntrepreneurName.sql" />
+    <Build Include="dbo\Tables\Email_Confirmation.sql" />
+    <Build Include="Security\EmprendeAdmin_1.sql" />
+    <Build Include="Security\EmprendeAdmin.sql" />
+    <Build Include="Security\RoleMemberships.sql" />
+    <Build Include="dbo\Tables\Status.sql" />
+    <Build Include="dbo\Tables\Shopping_Cart.sql" />
+    <Build Include="dbo\Tables\Service_Videos.sql" />
+    <Build Include="dbo\Tables\Service_Photos.sql" />
+    <Build Include="dbo\Tables\Organized.sql" />
+    <Build Include="dbo\Tables\Order.sql" />
+    <Build Include="dbo\Tables\Offer.sql" />
+    <Build Include="dbo\Tables\Generic_Status.sql" />
+    <Build Include="dbo\Tables\Electronic_Bill.sql" />
+    <Build Include="dbo\Tables\Bill.sql" />
+    <Build Include="dbo\Tables\SINPE_Movil_PM.sql" />
+    <Build Include="dbo\Tables\SINPE_IBAN_PM.sql" />
+    <Build Include="dbo\Tables\Card_PM.sql" />
+    <Build Include="dbo\Tables\SINPE_IBAN_PI.sql" />
+    <Build Include="dbo\Tables\Card_PI.sql" />
+    <Build Include="dbo\Tables\Utilizes_Chat.sql" />
+    <Build Include="dbo\Tables\Suggested_Category.sql" />
+    <Build Include="dbo\Tables\Personalized_Status.sql" />
+    <Build Include="dbo\Tables\Message.sql" />
+    <Build Include="dbo\Tables\HasSupplies.sql" />
+    <Build Include="dbo\Tables\Has_Status.sql" />
+    <Build Include="dbo\Tables\Has_Payment_Info.sql" />
+    <Build Include="dbo\Tables\Has_Keyword.sql" />
+    <Build Include="dbo\Tables\Chat.sql" />
+    <Build Include="dbo\Tables\Banned_Account.sql" />
+    <Build Include="dbo\Views\Unique_Purchases.sql" />
+    <Build Include="dbo\Views\OrderNotificationEntrepeneurs.sql" />
+    <Build Include="dbo\Views\OrderNotificationClient.sql" />
+    <Build Include="dbo\Views\Last_purchases.sql" />
+    <Build Include="dbo\Functions\GetUserName.sql" />
+    <Build Include="dbo\Stored Procedures\products_based_last_purchases.sql" />
+    <Build Include="dbo\Stored Procedures\GetServicesRestricted.sql" />
+    <Build Include="dbo\Tables\Suggested_Category.sql" />
+    <Build Include="dbo\Tables\Personalized_Status.sql" />
+    <Build Include="dbo\Functions\GetUserName.sql" />
+    <Build Include="dbo\Views\ultimas_compras_1.sql" />
+    <Build Include="dbo\Views\compras_unicas_1.sql" />
+    <Build Include="dbo\Stored Procedures\products_based_last_purchases_1.sql" />
+    <Build Include="dbo\Tables\Has_Status.sql" />
+    <Build Include="dbo\Tables\Utilizes_Chat.sql" />
+    <Build Include="dbo\Tables\Suggested_Category.sql" />
+    <Build Include="dbo\Tables\SINPE_Movil_PM.sql" />
+    <Build Include="dbo\Tables\SINPE_Movil_PI.sql" />
+    <Build Include="dbo\Tables\SINPE_IBAN_PM.sql" />
+    <Build Include="dbo\Tables\SINPE_IBAN_PI.sql" />
+    <Build Include="dbo\Tables\Message.sql" />
+    <Build Include="dbo\Tables\HasSupplies.sql" />
+    <Build Include="dbo\Tables\Chat.sql" />
+    <Build Include="dbo\Tables\Card_PM.sql" />
+    <Build Include="dbo\Tables\Card_PI.sql" />
+    <Build Include="dbo\Tables\Banned_Account.sql" />
+    <Build Include="dbo\Tables\ActiveAdministrators.sql" />
+    <Build Include="dbo\Views\Unique_Purchases.sql" />
+    <Build Include="dbo\Views\OrderNotificationEntrepeneurs.sql" />
+    <Build Include="dbo\Views\OrderNotificationClient.sql" />
+    <Build Include="dbo\Views\Last_purchases.sql" />
+    <Build Include="dbo\Functions\GetUserName.sql" />
+    <Build Include="dbo\Stored Procedures\products_based_last_purchases.sql" />
+    <Build Include="dbo\Stored Procedures\GetServicesRestricted.sql" />
+    <Build Include="dbo\Stored Procedures\GetServicesByCategory.sql" />
+    <Build Include="dbo\Stored Procedures\GetServices.sql" />
+    <Build Include="dbo\Stored Procedures\ChangeViewToTrue.sql" />
+    <Build Include="dbo\Stored Procedures\Add_SINPE_Movil_PI.sql" />
+    <Build Include="dbo\Stored Procedures\Add_SINPE_IBAN_PI.sql" />
+    <Build Include="dbo\Stored Procedures\Add_Card_IBAN_PI.sql" />
+    <Build Include="dbo\Stored Procedures\GetServicesByCategory.sql" />
+    <Build Include="dbo\Stored Procedures\GetServices.sql" />
+    <Build Include="dbo\Stored Procedures\ChangeViewToTrue.sql" />
+    <Build Include="dbo\Stored Procedures\Add_SINPE_Movil_PI.sql" />
+    <Build Include="dbo\Stored Procedures\Add_SINPE_IBAN_PI.sql" />
+    <Build Include="dbo\Stored Procedures\Add_Card_IBAN_PI.sql" />
+    <Build Include="dbo\Tables\Has_Keyword.sql" />
+    <Build Include="dbo\Tables\ActiveAdministrators.sql" />
+    <Build Include="dbo\Tables\Role.sql" />
+    <Build Include="dbo\Tables\Permission.sql" />
+    <Build Include="dbo\Tables\Is_Able_To.sql" />
+    <Build Include="dbo\Tables\Has_Keyword_Service.sql" />
+    <Build Include="dbo\Views\UniqueOffers.sql" />
+    <Build Include="dbo\Stored Procedures\GetOffers.sql" />
+    <Build Include="dbo\Stored Procedures\get_unique_offers.sql" />
+    <Build Include="dbo\Stored Procedures\getProductsByPrice.sql" />
+    <Build Include="dbo\Stored Procedures\getServicesByPrice.sql" />
+    <Build Include="dbo\Tables\Shopping_Cart_Has_2.sql" />
+    <Build Include="dbo\Tables\Product_Photos_1.sql" />
+    <Build Include="dbo\Tables\Permission_1.sql" />
+    <Build Include="dbo\Tables\Order_1.sql" />
+    <Build Include="dbo\Tables\Likes_1.sql" />
+    <Build Include="dbo\Tables\Is_Offer_1.sql" />
+    <Build Include="dbo\Tables\Is_Able_To_1.sql" />
+    <Build Include="dbo\Tables\Alliance_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetCantons_3.sql" />
+    <Build Include="dbo\Stored Procedures\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_QueueActivationSender_1.sql" />
+    <Build Include="dbo\Stored Procedures\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_QueueActivationSender_1.sql" />
+    <Build Include="dbo\Stored Procedures\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_QueueActivationSender.sql" />
+    <Build Include="dbo\Stored Procedures\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_QueueActivationSender_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_StartMessage_Update_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_StartMessage_Insert_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_StartMessage_Delete_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Entrepreneur_Email_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_EndMessage_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Email_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Code_ID_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Category_ID_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_StartMessage_Update_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_StartMessage_Insert_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_StartMessage_Delete_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Entrepreneur_Email_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_EndMessage_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Email_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Code_ID_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Category_ID_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_StartMessage_Update.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_StartMessage_Insert.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_StartMessage_Delete.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Entrepreneur_Email.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_EndMessage.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Email.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Code_ID.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Category_ID.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_View_1.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_State_1.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_StartMessage_Update_1.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_StartMessage_Insert_1.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_StartMessage_Delete_1.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_EndMessage_1.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_Client_Email_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Sender_2.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Receiver_2.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Sender_2.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Receiver_2.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Sender.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Receiver.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_Sender_2.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_Receiver_2.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Sender_3.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_60227979-2fa7-4bb9-bf87-a56f6bd1031e_Receiver_3.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Sender_3.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_26f02240-de1b-44f7-bdd9-a39326dcf160_Receiver_3.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Sender_1.sql" />
+    <Build Include="Service Broker\dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647_Receiver_1.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_Sender_3.sql" />
+    <Build Include="Service Broker\dbo_Order_78061e3e-a32f-4f3a-b131-7c619c2c3c97_Receiver_3.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <RefactorLog Include="EmprendeUCR_DB.refactorlog" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="dbo\Scripts\Script.PermissionsData.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="dbo\Scripts\Script.AddressData.sql" />
+  </ItemGroup>
+</Project>

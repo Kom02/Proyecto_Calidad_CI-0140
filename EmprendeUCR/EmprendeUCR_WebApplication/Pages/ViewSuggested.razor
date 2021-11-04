@@ -1,0 +1,125 @@
+﻿@page "/viewSuggested"
+@using Syncfusion.Blazor.Grids;
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using EmprendeUCR_WebApplication.Data.Entities
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Inputs
+@inject SuggestedCategoryService suggestedCategory
+@inject AddCategoryService addCategory
+
+
+    <h2>Categorías Sugeridas</h2>
+
+
+    <SfToolbar ID="ToolBar">
+        <ToolbarItems>
+
+        </ToolbarItems>
+    </SfToolbar>
+    <SfGrid ID="Grid" @ref="Grid" AllowSorting="true" Allow DataSource="@_suggested" IdMapping="ID" ParentIdMapping="" AllowSelection="true" TreeColumnIndex="0">
+        <GridEvents TValue="Suggested_Category" CommandClicked="CommandClickHandler"></GridEvents>
+        <GridEditSettings AllowDeleting="true" AllowEditing="true" AllowAdding="true"></GridEditSettings>
+        <GridSortSettings>
+            <GridSortColumns>
+                <GridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></GridSortColumn>
+            </GridSortColumns>
+        </GridSortSettings>
+        <GridColumns>
+            <GridColumn Field="Title" HeaderText="Titulo" Width="100" IsPrimaryKey="true" ></GridColumn>
+            <GridColumn Field="Description" HeaderText="Descripción" Width="160"></GridColumn>
+            <GridColumn Field="Status" HeaderText="Status" Width="160" Visible="false"></GridColumn>
+            <GridColumn HeaderText="Acciones" Width="160">
+                <GridCommandColumns>
+                    <GridCommandColumn Type="CommandButtonType.None" Title="abc"
+                                       ButtonOption="@(new CommandButtonOptions() { Content = "Ver Sugerencia" })" />
+                </GridCommandColumns>
+            </GridColumn>
+        </GridColumns>
+    </SfGrid>
+    <SfDialog ID="WatchDialog" Width="500px" IsModal="true" @bind-Visible="@visible">
+        <DialogTemplates>
+            <Header> Categoría Sugerida </Header>
+            <Content>
+                <p><b>Titulo</b></p>
+                <p>@title</p>
+                <br>
+                <p><b>Descripcion</b></p>
+                <p>@description</p>
+            </Content>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@AnimationEffect" Duration=400 />
+        <DialogButtons>
+            <DialogButton Content="Agregar categoría"  IsPrimary="true" OnClick="@AddCategory" />
+            <DialogButton Content="Rechazar categoría" CssClass="e-danger" IsPrimary="true" OnClick="@RejectCategory" />
+            <DialogButton Content="Cancelar" OnClick="@closeViewSuggestedtDialog" />
+        </DialogButtons>
+    </SfDialog>
+  
+    @code{
+
+        //Private Variables
+        private SfGrid<Suggested_Category> Grid { get; set; }
+        private IList<Suggested_Category> _suggested;
+        private Suggested_Category SuggestedCategory;
+        private double SelectedIndex;
+        private DialogEffect AnimationEffect = DialogEffect.Zoom;
+
+
+        private bool visible = false;
+        private string title = "";
+        private string description = "";
+        private int ID;
+        private int? ParentID;
+
+        public void closeViewSuggestedtDialog()
+        {
+            visible = false;
+        }
+
+        protected override async Task OnInitializedAsync()
+        {
+            _suggested = await suggestedCategory.GetAsync();
+        }
+        public void CommandClickHandler(CommandClickEventArgs<Suggested_Category> args)
+        {
+            if (args.CommandColumn.ButtonOption.Content == "Ver Sugerencia")
+            {
+                ID = args.RowData.ID;
+                var SelectedCategory = suggestedCategory.getSuggestedById(args.RowData.ID);
+                title = SelectedCategory.Title;
+                description = SelectedCategory.Description;
+                ParentID = SelectedCategory.ParentID;
+                visible = true;
+                SuggestedCategory = SelectedCategory;
+            }
+        }
+        private async void AddCategory()
+        {
+            closeViewSuggestedtDialog();
+            var selected = Grid.SelectedRowIndex;
+            var records = await Grid.GetCurrentViewRecords();
+            var record = records.Find(r => r.Title == title);
+            await Grid.DeleteRecord("Title", record);
+            await Grid.EndEdit();
+            Category category = new Category();
+            category.Title = title;
+            category.ParentId = ParentID;
+            category.Description = description;
+            await addCategory.InsertCategoryAsync(category);
+            suggestedCategory.deleteSuggested(SuggestedCategory);
+        }
+        private  async void RejectCategory() {
+
+            closeViewSuggestedtDialog();
+            var selected = Grid.SelectedRowIndex;
+            var records = await Grid.GetCurrentViewRecords();
+            var record = records.Find(r => r.Title == title);
+            await Grid.DeleteRecord("Title", record);
+            await Grid.EndEdit();
+            suggestedCategory.deleteSuggested(SuggestedCategory);
+        }
+
+    }
+
+

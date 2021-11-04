@@ -1,0 +1,337 @@
+﻿@page  "/Profile"
+
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Application.ProfileContext
+@using EmprendeUCR.Domain.Reports.Entities
+@using EmprendeUCR.Application.Reports.Implementations
+@using Syncfusion.Blazor.Popups;
+@using Syncfusion.Blazor.Inputs;
+@using Syncfusion.Blazor.DropDowns;
+@inject IProfileService profileService
+@inject NavigationManager NavigationManager
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@if (!_isLoading)
+{
+<nav class=" mt-3 navbar navbar-light bg-light">
+    <h3>Mi Perfil</h3>
+    <div class="col-2">
+        <button type="button" class=" btn-lg btn-danger" @onclick="@logout"> Cerrar sesión </button>
+    </div>
+</nav>
+    <div class="flex-container">
+        <EditForm Model="@myUser">
+            <div class="principal"> 
+
+                <div class="principalObject">
+
+                    <div class="flexDivEnd">
+
+                        <div class="objects">
+                            <!--Email-->
+                            <div class="marginElements">
+                                <label for="staticEmail" class="form-label secondary_title">Correo electrónico:</label>
+                                <InputText type="text" @bind-Value="@myUser.Email" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Email" readonly />
+                            </div>
+
+                            <!--Name-->
+                            <div class="marginElements">
+                                <label for="inputName" class="form-label secondary_title">Nombre:</label>
+                                <InputText type="text" @bind-Value="@myUser.Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Name" readonly />
+                            </div>
+
+                            <!--First last name-->
+                            <div class="marginElements">
+                                <label for="inputFLastName" class="form-label secondary_title">Primer apellido</label>
+                                <InputText type="text" @bind-Value="@myUser.F_Last_Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.F_Last_Name" readonly />
+                            </div>
+
+                            <!--Second last name-->
+                            <div class="marginElements">
+                                <label for="inputSLastName" class="form-label secondary_title">Segundo apellido</label>
+                                <InputText type="text" @bind-Value="@myUser.S_Last_Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.S_Last_Name" readonly />
+                            </div>
+
+                            <!--Phone-->
+                            <div class="marginElements">
+                                <label for="phone" class="form-label secondary_title">Teléfono</label>
+                                <InputText type="text" @bind-Value="@userPhone.Phone_Number" class="form-control inputsClass" id="staticEmail" placeholder="@userPhone.Phone_Number" readonly />
+                            </div>
+
+                            <!--Birth date-->
+                            <div class="marginElements">
+                                <label for="inputBDate" class="control-label secondary_title">Fecha de nacimiento:</label>
+                                <InputDate type="date" @bind-Value="@myUser.Birth_Date" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Birth_Date" readonly />
+                            </div>
+
+                            <!--Image-->
+                            <div class="marginElements">
+                                <div class="flexElementsColumns">
+                                    <label for="imageUser" class="secondary_title">Foto de perfil:</label>
+                                    @if (myUser.Photo != null)
+                                    {
+                                        <img src=@imgRef class="userImage" />
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/images.png" class="userImage" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="principalObject">
+                    <div class="flexDivStart">
+                        <div class="objects">
+                            <!--Address-->
+                            <!--Province, Canton and District-->
+                            <div class="marginElements">
+                                <label class="control-label secondary_title">Dirección:</label>
+                            </div>
+
+                            <div class="marginElements flexElementsColumns">
+                                <label for="Province" class="secondary_title">Provincia: </label>
+                                <InputText type="text" @bind-Value="@myUser.Province_Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Province_Name" readonly />
+                            </div>
+
+                            <div class="marginElements flexElementsColumns">
+                                <label for="Canton" class="secondary_title">Cantón:</label>
+                                <InputText type="text" @bind-Value="@myUser.Canton_Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.Canton_Name" readonly />
+                            </div>
+
+                            <div class="marginElements flexElementsColumns">
+
+                                <label for="District" class="secondary_title">Distrito: </label>
+                                <InputText type="text" @bind-Value="@myUser.District_Name" class="form-control inputsClass" id="staticEmail" placeholder="@myUser.District_Name" readonly />
+                            </div>
+
+                            @if (myMember != null)
+                            {
+                                <!--Exact address-->
+                                <div class="marginElements">
+                                    <label class="secondary_title">Dirección exacta: </label>
+                                    <InputTextArea type="text" @bind-Value="myMember.Direction" class="form-control inputsClass" id="staticEmail" placeholder="@myMember.Direction" row="3" readonly />
+                                </div>
+                            }
+
+                            <!--Categories and presentation-->
+                            <div class="marginElements">
+                                <!--Categories for clients and entrepreneurs-->
+                                @if (myClient != null || myEntrepreneur != null)
+                                {
+                                    <!-- Button trigger modal -->
+                                    <div class="marginElements flexElementsColumns">
+                                        <label for="SelectPreferences" class="control-label secondary_title"> Categorías favoritas: </label>
+                                        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#categoryModal">
+                                            Ver categorías
+                                        </button>
+                                    </div>
+
+                                    <!-- Modal -->
+                                    <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="categoryModalLabel">Categorías favoritas</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <ul class="list-group">
+                                                        @foreach (var likes in myLikes)
+                                                        {
+                                                            <li class="list-group-item">@profileService.GetCategoryTitle(likes.Category_Id)</li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!--Presentation Only for entrepreneur users-->
+                                @if (myEntrepreneur != null)
+                                {
+                                    <label class="secondary_title">Presentación</label>
+                                    <InputTextArea type="text" @bind-Value="myEntrepreneur.Presentation" class="form-control inputsClass" id="staticEmail" placeholder="@myEntrepreneur.Presentation" row="3" readonly />
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </EditForm>
+    </div>
+
+    <div class="futherButtons">
+        <button class="btn btn-primary" style="margin-right: 10px" @onclick="goHome"> Volver </button>
+        <button class="btn btn-primary" style="margin-left: 10px" @onclick="goEdit"> Editar perfil </button>
+        <button class="btn btn-danger" style="margin-left: 10px"@onclick="@OpenCreateReportDialog"> Reportar Usuario </button>
+    </div>
+
+}
+else
+{
+    <p>Cargando...</p>
+}
+
+<SfDialog Width="500px" MinHeight="350px" IsModal="true" @bind-Visible="@AddDialogVisible">
+    <DialogTemplates>
+        <Header> Crear nuevo reporte </Header>
+        <Content>
+            <SfTextBox ID="inVal" CssClass="report" @bind-value="@Title" Type="InputType.Text" Placeholder="Titulo del reporte" FloatLabelType='@FloatLabelType.Auto' @oninput="@ValidateTitle" />
+            <SfTextBox Multiline=true ID="inVal" CssClass="report" @bind-Value="@Content" Type="InputType.Text" Placeholder="Especifique su reporte" FloatLabelType='@FloatLabelType.Auto' @oninput="@ValidateDescription" />
+            <span> </span>
+            <SfComboBox TItem="Entrepreneur" TValue="String" DataSource="_users" CssClass="report" AllowFiltering=true @bind-Value="@user" Placeholder="Emprendedor a Reportar" FloatLabelType="@FloatLabelType.Auto">
+            <ComboBoxFieldSettings Text="User_Email" Value="User_Email">
+            </ComboBoxFieldSettings>
+            </SfComboBox>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Enviar reporte" IsPrimary="true" Disabled="@CreateReportDisabled" OnClick="@CreateReport" />
+        <DialogButton Content="Cancelar" OnClick="@CloseCreateReportDialog" />
+    </DialogButtons>
+</SfDialog>
+
+
+@code {
+    private User myUser;
+    private Client myClient = null;
+    private Members myMember = null;
+    private Entrepreneur myEntrepreneur = null;
+    private Administrator myAdministrator = null;
+    private Phones userPhone = null;
+
+    public bool AddDialogVisible;
+    public string Title = null;
+    public string Content = null;
+    private string imgRef = "/images/images.png";
+    private bool TitleNotValid;
+    private bool DescriptionNotValid;
+    public bool ContentNotValid;
+    public bool CreateReportDisabled;
+    public string user;
+
+    private IList<Entrepreneur> _users= new List<Entrepreneur>();
+
+    private IList<Likes> myLikes = new List<Likes>();
+
+    private bool _isLoading = true;
+    private string homeReference = "/";
+
+    public void ValidateTitle(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        TitleNotValid = true;
+        Title = (String)args.Value;
+        if (Title.Length > 0)
+        {
+            TitleNotValid = false;
+        }
+        CreateReportDisabled = TitleNotValid || DescriptionNotValid;
+    }
+    public void ValidateDescription(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        ContentNotValid = true;
+        Content = (String)args.Value;
+        if (Content.Length > 0)
+        {
+            ContentNotValid = false;
+        }
+        CreateReportDisabled = TitleNotValid || DescriptionNotValid;
+    }
+    public async void CreateReport()
+    {
+        this.AddDialogVisible = false;
+        Report report = new Report();
+        report.Title = Title;
+        report.Content = Content;
+        report.User = user;
+        Console.WriteLine(Title);
+        Console.WriteLine(Content);
+        Console.WriteLine(user);
+        await InsertReportAsync(report);
+        ResetCreateReportData();
+    }
+    public void ResetCreateReportData()
+    {
+        AddDialogVisible = false;
+        Title = null;
+        Content = null;
+        CreateReportDisabled = false;
+        TitleNotValid = false;
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        string email = await sessionStorage.GetItemAsync<string>("Email");
+        int userType = await sessionStorage.GetItemAsync<int>("Type");
+        myUser = await profileService.GetUser(email);
+        _users = await profileService.GetUsers();
+        //_users = await GetAsync();
+        //_users = await GetAsync();
+        if (myUser.Photo != null)
+        {
+            imgRef = "data:image;base64," + @System.Convert.ToBase64String(myUser.Photo);
+        }
+        userPhone = await profileService.GetPhone(email);
+        switch (userType)
+        {
+            case 1:
+                myMember = await profileService.GetMember(email);
+                myClient = await profileService.GetClient(email);
+                myLikes = await profileService.GetLikes(email);
+                break;
+            case 2:
+                myEntrepreneur = await profileService.GetEntrepreneur(email);
+                myMember = await profileService.GetMember(email);
+                myLikes = await profileService.GetLikes(myUser.Email);
+                homeReference += "Entrepreneur";
+                break;
+            case 3:
+                myAdministrator = await profileService.GetAdministrator(email);
+                homeReference += "admin";
+                break;
+        }
+
+        _isLoading = false;
+    }
+
+    private void goHome()
+    {
+        NavigationManager.NavigateTo(homeReference);
+    }
+
+    private void goEdit()
+    {
+        NavigationManager.NavigateTo("/EditProfile");
+    }
+
+    private async void logout()
+    {
+        await sessionStorage.ClearAsync();
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+    private void OpenCreateReportDialog()
+    {
+        this.AddDialogVisible = true;
+        this.CreateReportDisabled = true;
+    }
+
+    public void CloseCreateReportDialog()
+    {
+        this.AddDialogVisible = false;
+        ResetCreateReportData();
+    }
+    public async Task<bool> InsertReportAsync(Report report)
+    {
+         await profileService.AddReport(report);
+
+        return true;
+    }
+
+
+}

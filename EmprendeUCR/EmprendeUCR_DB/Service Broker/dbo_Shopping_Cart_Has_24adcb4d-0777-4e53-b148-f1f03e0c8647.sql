@@ -1,0 +1,4 @@
+﻿CREATE CONTRACT [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647]
+    AUTHORIZATION [EmprendeAdmin]
+    ([dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/StartMessage/Insert] SENT BY INITIATOR, [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/StartMessage/Update] SENT BY INITIATOR, [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/StartMessage/Delete] SENT BY INITIATOR, [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/Email] SENT BY INITIATOR, [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/Code_ID] SENT BY INITIATOR, [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/Entrepreneur_Email] SENT BY INITIATOR, [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/Category_ID] SENT BY INITIATOR, [dbo_Shopping_Cart_Has_24adcb4d-0777-4e53-b148-f1f03e0c8647/EndMessage] SENT BY INITIATOR);
+

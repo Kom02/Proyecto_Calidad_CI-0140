@@ -1,0 +1,64 @@
+﻿@using Syncfusion.Blazor.DropDowns
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@using EmprendeUCR_WebApplication.Application.NotificationContext
+@using EmprendeUCR_WebApplication.Domain.Core.CoreEntities
+@using EmprendeUCR_WebApplication.Domain.NotificationContext;
+@using EmprendeUCR_WebApplication.Data.Entities.ContextShop
+@inject INotificationService NotificationService;
+@using Newtonsoft.Json;
+@inject NavigationManager NavigationManager;
+<div class="position-absolute bg-white border-silver mt-3" style="right: 100px">
+    @if (componentLoaded)
+    {
+        @foreach (var notification in user.Notifications)
+        {
+            <div class="d-flex px-4 py-3 border-silver hover-light-grey width-300 d-flex justify-content-sm-between align-items-center">
+                <a @onclick="()=>show_notifications(notification)" class="fs-6 overflow-auto user-select-auto">@notification.ToString()</a>
+                <span class="material-icons text-@notification.color fs-5">
+                    circle
+                </span>
+            </div>
+        }
+
+    }
+
+</div>
+
+
+@code {
+
+
+    private bool componentLoaded = false;
+    int myType;
+    string color = "danger";
+    private UserNotification user;
+
+    // EventCallBack to call the ShowNotifications method on the NavMenu.
+    [Parameter]
+    public EventCallback<int> ShowNotifications { get; set; }
+
+
+    /*
+      Summary: Method to call the ShowNotification method on the navigation menu.
+     alerts the nav menu to hide the notifications component 
+      Parameters: Method does not recieve parameters
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task show_notifications(Notification notification)
+    {
+        await ShowNotifications.InvokeAsync();
+        NavigationManager.NavigateTo(notification.url, forceLoad: true);
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        string json = await sessionStorage.GetItemAsync<string>("UserNotification");
+        user = JsonConvert.DeserializeObject<UserNotification>(json);
+        NotificationService.GetNotifications(user);
+        componentLoaded = true;
+
+        StateHasChanged();
+    }
+}

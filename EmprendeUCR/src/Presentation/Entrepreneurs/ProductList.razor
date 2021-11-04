@@ -1,0 +1,51 @@
+﻿
+@page "/teams"
+
+@using EmprendeUCR.Application.Entrepreneurs
+@using  EmprendeUCR.Domain.Entrepreneurs.Entities.Product_Services.Products
+@inject IProductService TeamService
+
+<div class="container">
+    <h3>ProductList Refactor</h3>
+    <Loading IsLoading="_isLoading">
+        @if (!_teams!.Any())
+        {
+            <h4 class="text-danger">There are no teams currently registered.</h4>
+        }
+        else
+        {
+            <ul>
+                @foreach (var team in _teams!)
+                {
+                    
+                        @if(team.Photos != null && team.Photos.Count()>0)
+                        {
+                <li>
+                    <a href="@($"/teams/{team.Code_ID}")">@team.Product_Name @team.Photos.FirstOrDefault().Product_Photos_ID </a>
+                </li>
+                        }
+                    
+                }
+            </ul>
+        }
+    </Loading>
+</div>
+
+@code {
+
+    private bool _isLoading = true;
+    private List<Product>? _teams;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTeams();
+    }
+
+    private async Task LoadTeams()
+    {
+        _isLoading = true;
+        _teams = await TeamService.GetProductsAsync();
+        _isLoading = false;
+    }
+
+}

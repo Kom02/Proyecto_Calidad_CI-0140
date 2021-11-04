@@ -1,0 +1,208 @@
+﻿@page "/admin_payment_methods"
+@using System;
+@using System.Collections.Generic;
+@using EmprendeUCR.Application.PaymentMethods
+@using EmprendeUCR.Domain.PaymentMethods.Entities
+
+@using System.Threading.Tasks;
+@using Syncfusion.Blazor.Cards
+@using Syncfusion.Blazor.Buttons
+@inject ISinpeMovilPaymentMethodService SinpeMovilPaymentMethodService
+@inject ISinpeIbanPaymentMethodService SinpeIbanPaymentMethodService
+@inject ICardPaymentMethodService CardPaymentMethodService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject NavigationManager NavigationManager
+
+@if (_isLoading)
+{
+    <p>Cargando</p>
+}
+else
+{
+    <h2>Métodos de pago</h2>
+    <div class="grid-container">
+        @foreach (var paymentMethod in PaymentMethodsList)
+        {
+            <SfCard CssClass="e-card">
+                <div class="img-container">
+                    <img src="images/cards/@paymentMethod.Logo" class="images" />
+                </div>
+                <CardFooter>
+                    <CardFooterContent>
+                        <SfButton CssClass="e-btn e-outline e-primary" @onclick="args => changeStatus(paymentMethod)">@paymentMethod.ButtonLabel</SfButton>
+                    </CardFooterContent>
+                </CardFooter>
+            </SfCard>
+        }
+    </div>
+}
+
+
+
+<style>
+
+    .images {
+        height: auto;
+        width: 100px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .e-card {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        width: 200px;
+    }
+
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-gap: 20px;
+    }
+
+    .e-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .img-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100px;
+        width: 100px;
+    }
+</style>
+
+@code
+{
+    private IEnumerable<SinpeMovilPaymentMethod>? _sinpeMovilPaymentMethods;
+    private IEnumerable<SinpeIbanPaymentMethod>? _sinpeIbanPaymentMethods;
+    private IEnumerable<CardPaymentMethod>? _cardPaymentMethods;
+    public List<PaymentMethodModel> PaymentMethodsList = new List<PaymentMethodModel>();
+    private const int SINPE_MOVIL = 0;
+    private const int SINPE_IBAN = 1;
+    private const int CARD = 2;
+    bool _isLoading = true;
+
+    public class PaymentMethodModel
+    {
+        public String Name;
+        public Boolean Status;
+        public String Logo;
+        public String ButtonLabel;
+        public int Type;
+        public PaymentMethodModel(String name, Boolean status, int type)
+        {
+            Name = name;
+            Status = status;
+            Type = type;
+            SetLogo();
+            SetButtonLabel();
+        }
+
+        public void SetButtonLabel()
+        {
+            if (Status)
+            {
+                ButtonLabel = "Desactivar";
+            }
+            else
+            {
+                ButtonLabel = "Activar";
+            }
+        }
+
+        private void SetLogo()
+        {
+            string logo = Name.ToLower();
+            Logo = logo.Replace(" ", "_") + ".png";
+        }
+    }
+
+    public async Task changeStatus(PaymentMethodModel model)
+    {
+        switch (model.Type)
+        {
+            case SINPE_MOVIL:
+                //Sinpe Movil
+                SinpeMovilPaymentMethod? sinpeMovilPaymentMethod = await SinpeMovilPaymentMethodService.GetPaymentMethodByIdAsync(model.Name);
+                if (sinpeMovilPaymentMethod != null)
+                {
+                    await SinpeMovilPaymentMethodService.ChangeStatusToPaymentMethodAsync(sinpeMovilPaymentMethod);
+                    model.Status = sinpeMovilPaymentMethod.Status;
+                }
+                break;
+            case SINPE_IBAN:
+                //Sinpe Iban
+                SinpeIbanPaymentMethod? sinpeIbanPaymentMethod = await SinpeIbanPaymentMethodService.GetPaymentMethodByIdAsync(model.Name);
+                if (sinpeIbanPaymentMethod != null)
+                {
+                    await SinpeIbanPaymentMethodService.ChangeStatusToPaymentMethodAsync(sinpeIbanPaymentMethod);
+                    model.Status = sinpeIbanPaymentMethod.Status;
+                }
+                break;
+            case CARD:
+                //Card
+                CardPaymentMethod? cardPaymentMethod = await CardPaymentMethodService.GetPaymentMethodByIdAsync(model.Name);
+                if (cardPaymentMethod != null)
+                {
+                    await CardPaymentMethodService.ChangeStatusToPaymentMethodAsync(cardPaymentMethod);
+                    model.Status = cardPaymentMethod.Status;
+                }
+                break;
+            default:
+                break;
+        }
+        model.SetButtonLabel();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        string Email = await sessionStorage.GetItemAsync<string>("Email");
+        int Type = await sessionStorage.GetItemAsync<int>("Type");
+
+        if (Email == null)
+        {
+            NavigationManager.NavigateTo("/Login");
+        }
+        if (Type != 3)
+        {
+            NavigationManager.NavigateTo("/Login");
+        }
+        else
+        {
+            await LoadPaymentMethods();
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadPaymentMethods()
+    {
+        _sinpeMovilPaymentMethods = await SinpeMovilPaymentMethodService.GetPaymentMethodsAsync();
+        foreach (var sinpeMovilPaymentMethod in _sinpeMovilPaymentMethods)
+        {
+            String name = sinpeMovilPaymentMethod.Name;
+            Boolean status = sinpeMovilPaymentMethod.Status;
+            PaymentMethodsList.Add(new PaymentMethodModel(name, status, SINPE_MOVIL));
+        }
+        _sinpeIbanPaymentMethods = await SinpeIbanPaymentMethodService.GetPaymentMethodsAsync();
+        foreach (var sinpeIbanPaymentMethod in _sinpeIbanPaymentMethods)
+        {
+            String name = sinpeIbanPaymentMethod.Name;
+            Boolean status = sinpeIbanPaymentMethod.Status;
+            PaymentMethodsList.Add(new PaymentMethodModel(name, status, SINPE_IBAN));
+        }
+        _cardPaymentMethods = await CardPaymentMethodService.GetPaymentMethodsAsync();
+        foreach (var cardPaymentMethod in _cardPaymentMethods)
+        {
+            String name = cardPaymentMethod.Name;
+            Boolean status = cardPaymentMethod.Status;
+            PaymentMethodsList.Add(new PaymentMethodModel(name, status, CARD));
+        }
+    }
+}

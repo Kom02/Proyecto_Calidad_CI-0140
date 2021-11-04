@@ -1,0 +1,310 @@
+﻿@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using EmprendeUCR_WebApplication.Pages
+@using EmprendeUCR_WebApplication.Application.NotificationContext
+@using EmprendeUCR_WebApplication.Domain.NotificationContext
+@inject ProductServicePandemic ProductServicePandemic
+@inject Shopping_Cart_HasService Shopping_Cart_HasService
+@inject Shopping_Cart_Has_Service_Pandemic Shopping_Cart_Has_Service_Pandemic
+@inject INotificationService NotificationService
+@inject NavigationManager NavigationManager
+@inject UserServicePandemic UserServicePandemic
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@using Newtonsoft.Json;
+@implements IDisposable
+<div class="w-100 navBar">
+
+    <div class="head w-100 d-flex flex-row justify-content-between align-items-center px-5">
+        <div class="logo">
+
+            @*
+                NavMenu.razor: This file is used to display and adapt the nav menu,
+                which is the header of the site, to every kind of user, including
+                those who have not logged in yet.
+            *@
+            <a href="/" class="color-white h2">EMPRENDEUCR</a>
+        </div>
+        <div class="acount-links d-flex">
+            @* If the user had previously clicked on the login button, then... *@
+
+            @if (!string.IsNullOrEmpty(myEmail))
+            {
+                @if (!_isLoading)
+                {
+                    <div class="zIndex-primary">
+                        @* Update notifications when the user logs in. *@
+                        <button class="color-silver a-white btn @(UserNotification.notificationQuantity == 0 ? "disabled btn" : "") "  @onclick="showNotifications" >
+                            <span class="material-icons icon-l">
+                                notifications
+                            </span>
+                            <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="top: 16px">
+                                @UserNotification.notificationQuantity
+                                <span class="visually-hidden">unread messages</span>
+                            </span>
+                        </button>
+                        @* Update notifications when the user logs in. *@
+
+                        @if (showNotificationsComponent)
+                        {
+                            <div>
+                                <NotificationsComponent ShowNotifications="showNotifications">
+
+                                </NotificationsComponent>
+                            </div>
+
+                        }
+
+                    </div>
+                    <div>
+                        @* Checks the user type and displays icons according to it. *@
+                        @if (myType == 1)
+                        {
+                            <a href="ShoppingCart" class="color-silver a-white btn mx-5  @(amountProductsNotifications == 0 ? "disabled btn" : "")">
+                                <span class="material-icons-outlined icon-l">
+                                    shopping_cart
+                                </span>
+                                <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="top: 16px">
+                                    @amountProductsNotifications
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+
+                            </a>
+
+                        }
+                    </div>
+
+                    @* Display account circle when the user logs in. *@
+                    <a href="/Profile"> <img title="Mi perfil" width="40" height="40" src=@photo class="rounded-circle"></a>
+                }
+                else
+                {
+                    <p>Cargando Usuario...</p>
+                }
+            }
+            else
+            {
+                @* If the user has not logged in, then display the log in button *@
+                <button @onclick="registro" class="btn btn-secondary boton"> Registrarse</button>
+                <button @onclick="logear" class="btn btn-primary boton"> Iniciar Sesión</button>
+            }
+        </div>
+    </div>
+
+    @* Block of code to adjust the navigation menu's position onscreen. *@
+    <nav id="SecondaryNav" class="SecondaryNav bg-white  w-100 d-flex flex-row justify-content-between align-items-center px-5">
+        <ul class="d-flex flex-row align-bottom">
+            <li class=" "> <a href=@homeRef class="color-grey mx-5 p-2"> HOME </a></li>
+            <li class=" "> <a href="/about" class="color-grey mx-5"> SOBRE NOSOTROS </a></li>
+
+            @if (myType == 2)
+            {
+                <li class=" "> <a href="/OrderManagement" class="color-grey mx-5 p-2"> GESTION DE ORDENES </a></li>
+                <li class=" "> <a href="/listProducts" class="color-grey mx-5 p-2"> PRODUCTOS </a></li>
+                <li class=" "> <a href="/ListServices" class="color-grey mx-5 p-2"> SERVICIOS </a></li>
+                <li class=" "> <a href="/Offers" class="color-grey mx-5"> OFERTAS </a></li>
+                <li class=" "> <a href="/entrepreneur_payment_methods" class="color-grey mx-5"> METODOS DE PAGO </a></li>
+
+                /*Se asignan los permisos del emprendedor*/
+                if (permisos.Count > 0)
+                {
+                    for (int i = 0; i < permisos.Length(); i++)
+                    {
+                        if (permisos[i].Role_Id == 3)
+                        {
+                            if (permisos[i].Permission_Id == 1)
+                            {
+                                <li class=" "> <a href="/Alliances" class="color-grey mx-5"> ALIANZAS </a></li>
+                            }
+                        }
+                    }
+                }
+            }
+            @if (myType == 1)
+            {
+                <li class=""> <a href="/ClientRequest" class="color-grey mx-5 p-2"> MIS PEDIDOS </a></li>
+            }
+            <li class=" "> <a href="/My_Alliance" class="color-grey mx-5"> ALIANZAS </a></li>
+            <li class=" "> <a href="/Offers" class="color-grey mx-5"> OFERTAS </a></li>
+            @if (myType == 2){
+                <li class=" "> <a href="/entrepreneur_payment_methods" class="color-grey mx-5"> METODOS DE PAGO </a></li>
+                <li class=" "> <a href="/MyCustomers" class="color-grey mx-5"> MIS CLIENTES </a></li>
+                }
+        </ul>
+
+    </nav>
+</div>
+
+@code {
+    private string myEmail;
+    private string homeRef;
+    private string profileRef;
+    private int myType;
+    private bool showNotificationsComponent = false;
+    private bool _isLoading = true;
+    private string photo = "";
+    private string inputValue;
+    private bool control = false;
+    private IList<Is_Able_To> permisos= new List<Is_Able_To>();
+
+    // Boolean value to determine if the user is logged in.
+    // To be used in HTML section of this file.
+    private bool logeado = false;
+
+    // Int value used to store the total amount of products stored in
+    // the shopping cart. To be used in the HTML section of this file.
+    private int amountProductsNotifications;
+
+    // UserNotification class used to store the total amount of notification stored
+    // To be used in the HTML section of this file.
+    private UserNotification UserNotification;
+    /*
+        Summary: Method to show notifications
+        Receives: nothing
+        Returns: nothing
+        What might make this to fail: nothing
+    */
+
+    private void showNotifications()
+    {
+        showNotificationsComponent = !showNotificationsComponent;
+    }
+
+    /*
+        Summary:  Virtual method from Blazor overridden to adapt it to our program.
+                  It invokes a method to get the total number of elements in a table
+        Receives: nothing
+        Returns: nothing
+        What might make this to fail: nothing
+    */
+    protected override async Task OnInitializedAsync()
+    {
+        myEmail = await sessionStorage.GetItemAsync<string>("Email");
+        myType = await sessionStorage.GetItemAsync<int>("Type");
+
+
+
+        if (myEmail != null)
+        {
+            await GetUserNotification();
+
+            if (UserNotification == null)
+            {
+                UserNotification = new UserNotification(myEmail, myType);
+                string json = JsonConvert.SerializeObject(UserNotification);
+                await sessionStorage.SetItemAsync<string>("UserNotification", json);
+
+            }
+
+            permisos = ProductServicePandemic.getUserPermissions(myEmail);
+            foreach (var x in permisos)
+            {
+                Console.WriteLine(x.Email);
+                Console.WriteLine(x.Permission_Id);
+                Console.WriteLine(x.Role_Id);
+            }
+        }
+
+        if (UserNotification != null)
+        {
+            NotificationService.GetNotificationsQuantity(UserNotification);
+            NotificationService.EventsSubscriptions(UserNotification);
+            amountProductsNotifications = NotificationService.GetProductsQuantity(UserNotification);
+            string json = JsonConvert.SerializeObject(UserNotification);
+            await sessionStorage.SetItemAsync<string>("UserNotification", json);
+            UserNotification.OnNotificationChangeds += quantityEvent;
+
+        }
+
+
+
+        if (myEmail != null)
+        {
+            try
+            {
+                photo = "data:image;base64," + System.Convert.ToBase64String(UserServicePandemic.GetUserByEmail(myEmail).Photo);
+            }
+            catch
+            {
+                photo = "/images/images.png";
+            }
+        }
+        UpdateParams(myType);
+        _isLoading = false;
+    }
+
+    public async Task quantityEvent(object sender, NotificationChangeEventArgs e)
+    {
+        NotificationService.GetNotificationsQuantity(UserNotification);
+        amountProductsNotifications = NotificationService.GetProductsQuantity(UserNotification);
+        this.InvokeAsync(() => this.StateHasChanged());
+
+    }
+
+    /*
+        Summary:  This method updates the nav buttons with the respective links
+                  of each type of user.
+        Receives: nothing
+        Returns: nothing
+        What might make this to fail: nothing
+    */
+    public void UpdateParams(int myType)
+    {
+
+        switch (myType)
+        {
+            case 1:
+                homeRef = "/";
+                break;
+            case 2:
+                homeRef = "/HomeEntrepreneur";
+                profileRef = "/ProfileEntrepreneur";
+                break;
+            case 3:
+                homeRef = "/admin";
+                break;
+            default:
+                homeRef = "";
+                break;
+        }
+        StateHasChanged();
+    }
+    /*
+        Summary:  The following 2 methods just redirect the user to different
+                  pages.
+        Receives: nothing
+        Returns: nothing
+        What might make this to fail: nothing
+    */
+    private void logear()
+    {
+        NavigationManager.NavigateTo("/Login");
+    }
+
+    private void registro()
+    {
+        NavigationManager.NavigateTo("/registro");
+    }
+
+    private async Task GetUserNotification()
+    {
+        string json = await sessionStorage.GetItemAsync<string>("UserNotification");
+        if (json != "null")
+        {
+            UserNotification = JsonConvert.DeserializeObject<UserNotification>(json);
+        }
+
+    }
+
+    public void Dispose()
+    {
+        if (UserNotification is not null)
+        {
+            NotificationService.Unsubscription(UserNotification);
+            UserNotification.OnNotificationChangeds -= quantityEvent;
+        }
+
+    }
+
+
+}

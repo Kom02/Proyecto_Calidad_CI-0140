@@ -1,0 +1,313 @@
+﻿@page "/listPermissions"
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Domain.PermissionContext
+@using EmprendeUCR.Application.PermissionContext
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager NavigationManager
+
+@inject IPermissionService PermissionService
+@inject NavigationManager uriHelper
+
+@if (loading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <h4 class="title">Permisos de los usuarios</h4>
+
+
+    <div class="permissions">
+        <div class="flex-buscar">
+            <h5>Buscar: </h5>
+            <input class="form-control searchBar" placeholder="Ingrese correo o nombre" type="search" @oninput="@searchUsers" />
+        </div>
+
+        <hr />
+        @if (filterUserList.Count > 0)
+        {
+            @foreach (var user in filterUserList)
+            {
+                getUserToList(user);
+                <div class="userPermission border-blue">
+
+                    <div class="datosPrincipales">
+                        <div class="display-row">
+                            <p class="secondary_title">Email:&nbsp; </p>
+                            <p>@user</p>
+                        </div>
+
+                        <div class="display-row">
+                            <p class="secondary_title">Nombre:&nbsp;</p>
+                            <p>@diplayUser.Name @diplayUser.F_Last_Name @diplayUser.S_Last_Name </p>
+                        </div>
+                    </div>
+
+                    <!--MODAL DE PERMISOS DE USUARIO-->
+                    <button type="button" class="btn btn-secondary botonDatos" @onclick="_ => getUsersToListByEmail(user)" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                        Permisos
+                    </button>
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                @if (cargandoModalPermisos)
+                                {
+                                    <p>Cargando datos...</p>
+                                }
+                                else
+                                {
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="exampleModalLabel"> Permisos de: @actualUser</h5>
+                                        <button type="button" class="btn-close" @onclick="_ => changeState()" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        @foreach (var modaluser in modalUser)
+                                        {
+
+                                            @if (rolActual != rolesList[modaluser.Role_Id])
+                                            {
+                                                <h4 class="secondary_title rolTitle">@rolesList[modaluser.Role_Id]</h4>
+                                                setRolActual(rolesList[modaluser.Role_Id]);
+                                            }
+                                            <p>&nbsp; &nbsp; &nbsp;-@permissionsList[modaluser.Permission_Id]</p>
+                                        }
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" @onclick="_ => changeState()" data-bs-dismiss="modal">Cerrar</button>
+                                    </div>
+                                    rolActual = "";
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Button trigger modal -->
+                    <button type="button" class="btn btn-secondary botonDatos" @onclick="_ => getUser(user)" data-bs-toggle="modal" data-bs-target="#ModalUser">
+                        Datos
+                    </button>
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="ModalUser" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                @if (cargandoModalDatos)
+                                {
+                                    <p>cargando datos...</p>
+                                }
+                                else
+                                {
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="userModalLabel"> Datos de: @actualUser</h5>
+                                        <button type="button" class="btn-close" @onclick="_ => changeState()" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div>
+                                            <div class="display-modal espacioArriba">
+                                                <p class="secondary_title">Nombre:&nbsp;</p>
+                                                <p>@findUser.Name</p>
+                                            </div>
+
+                                            <div class="display-modal espacioArriba">
+                                                <p class="secondary_title">Primer Apellido:&nbsp;</p>
+                                                <p>@findUser.F_Last_Name</p>
+                                            </div>
+
+                                            <div class="display-modal espacioArriba">
+                                                <p class="secondary_title">Segundo Apellido:&nbsp;</p>
+                                                <p>@findUser.S_Last_Name</p>
+                                            </div>
+
+                                            <div class="display-modal espacioArriba">
+                                                <p class="secondary_title">Email:&nbsp;</p>
+                                                <p>@findUser.Email</p>
+                                            </div>
+
+                                            <div class="display-modal espacioArriba">
+                                                <p class="secondary_title">Fecha de nacimiento:&nbsp;</p>
+                                                <p>@(findUser.Birth_Date.ToShortDateString())</p>
+                                            </div>
+
+                                            <div class="display-modal espacioArriba">
+                                                <p class="secondary_title espacioArriba">Foto de perfil:&nbsp;</p>
+                                            </div>
+
+                                            <div>
+                                                <img src="data:image;base64,@System.Convert.ToBase64String(findUser.Photo)" class="userImage" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" @onclick="_ => changeState()" data-bs-dismiss="modal">Cerrar</button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary botonDatos" @onclick="_ => editPermissions(user)">
+                        Editar
+                    </button>
+
+                </div>
+            }
+        }
+        else
+        {
+            <h5 class="secondtitle">No hay resultados con la busqueda.</h5>
+        }
+    </div>
+}
+
+@code {
+    private IList<Is_Able_To> userPermisions;
+    private IList<Role> roles;
+    private IList<Permission> permissions;
+    private bool loading = true;
+    private Dictionary<int, string> rolesList = new Dictionary<int, string>();
+    private Dictionary<int, string> permissionsList = new Dictionary<int, string>();
+
+    private string rolActual = "";
+
+    List<string> pastUsers = new List<string>();
+    List<Is_Able_To> modalUser = new List<Is_Able_To>();
+
+    List<string> cleanUsersList = new List<string>();
+    List<string> filterUserList = new List<string>();
+
+    private User findUser = null;
+    private User diplayUser = null;
+    private bool cargandoModalPermisos = true;
+    private bool cargandoModalDatos = true;
+
+    private string actualUser = "";
+    private string searchValue = "";
+
+    IList<User> allUsers = new List<User>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        userPermisions = await PermissionService.getAllUserPermisions();
+        roles = await PermissionService.getAllRoles();
+        permissions = await PermissionService.getAllPermisions();
+        createPermissionsDictionary();
+        createRolesDictionary();
+
+        if (userPermisions.Count > 0)
+        {
+            userPermisions = userPermisions.OrderBy(o => o.Email).ToList();
+        }
+
+        allUsers = await PermissionService.getAllUsers();
+        createCleanList();
+        filterUserList = cleanUsersList.ToList();
+        loading = false;
+    }
+
+    private void createRolesDictionary()
+    {
+        for (int i = 0; i < roles.Length(); i++)
+        {
+            rolesList.Add(roles[i].Id, roles[i].Type);
+        }
+    }
+
+    private void createPermissionsDictionary()
+    {
+        for (int i = 0; i < permissions.Length(); i++)
+        {
+            permissionsList.Add(permissions[i].Id, permissions[i].Description);
+        }
+    }
+
+    public void setRolActual(string rol)
+    {
+        rolActual = rol;
+    }
+
+    public void getUsersToListByEmail(string email)
+    {
+        actualUser = email;
+        modalUser.Clear();
+        modalUser = new List<Is_Able_To>(userPermisions.Where(o => o.Email.Equals(email)));
+        cargandoModalPermisos = false;
+    }
+
+    public void getUser(string email)
+    {
+        actualUser = email;
+        modalUser.Clear();
+        findUser = PermissionService.getUserByEmail(email);
+        cargandoModalDatos = false;
+    }
+
+    public void createCleanList()
+    {
+        foreach (var user in userPermisions)
+        {
+            if (!cleanUsersList.Contains(user.Email))
+            {
+                cleanUsersList.Add(user.Email);
+            }
+        }
+    }
+
+    private void changeState()
+    {
+        cargandoModalPermisos = true;
+        cargandoModalDatos = true;
+        findUser = null;
+    }
+
+    private void editPermissions(string user)
+    {
+        string emailHash = PermissionService.getHashByEmail(user);
+        NavigationManager.NavigateTo("/userPermissions?hashEmail=" + emailHash);
+    }
+
+    private void getUserToList(string email)
+    {
+        diplayUser = allUsers.FirstOrDefault(o => o.Email.Equals(email));
+    }
+
+    private User getUserArray(string email)
+    {
+        return allUsers.FirstOrDefault(o => o.Email.Equals(email));
+    }
+
+    private async Task searchUsers(ChangeEventArgs args)
+    {
+        string newsearchValue = (string)args.Value;
+        if (newsearchValue != searchValue)
+        {
+            searchValue = newsearchValue;
+            filterUserList.Clear();
+            if (searchValue == "")
+            {
+                filterUserList = cleanUsersList.ToList();
+            }
+            else
+            {
+                for (int i = 0; i < cleanUsersList.Length(); i++)
+                {
+                    string email = cleanUsersList[i];
+                    User user = getUserArray(email);
+
+                    if (email.Contains(searchValue))
+                    {
+                        filterUserList.Add(email);
+                    }
+                    else
+                    {
+                        string nombre = user.Name + " " + user.F_Last_Name + " " + user.S_Last_Name;
+                        if (nombre.Contains(searchValue))
+                        {
+                            filterUserList.Add(email);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

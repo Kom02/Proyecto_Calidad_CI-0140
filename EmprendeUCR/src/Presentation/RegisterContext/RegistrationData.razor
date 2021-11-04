@@ -1,0 +1,538 @@
+﻿@page "/registrationData"
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Domain.RegisterContext.Entities
+@using EmprendeUCR.Application.RegisterContext
+@using Microsoft.AspNetCore.WebUtilities
+@using Blazored.FluentValidation
+
+@inject IRegisterService RegisterService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+<!--HTML-->
+@if (typeOfUser == "Client")
+{
+    <h3>Registro cliente(a)</h3>
+}
+else if (typeOfUser == "Entrepreneur")
+{
+    <h3>Registro Emprendedor(a)</h3>
+}
+else // Administrator
+{
+    <h3>Registro Administrador(a)</h3>
+}
+<p> Por favor complete los espacios en blanco para finalizar el registro.</p>
+@if (_isLoading)
+{
+    <h3>Cargando...</h3>
+}
+else
+{
+    <EditForm Model="@newUser" OnValidSubmit="@insertUser">
+        <FluentValidationValidator />
+
+        <div class="principal">
+
+            <div class="principalObject">
+
+                <div class="flexDivEnd">
+
+                    <div class="objects">
+                        <!--Email-->
+                        <div class="marginElements">
+                            <label for="staticEmail" class="form-label secondary_title">Correo electrónico:</label>
+                            <InputText type="text" @bind-Value="@_email.Email" class="form-control inputsClass" id="staticEmail" placeholder="@_email.Email" readonly />
+                        </div>
+
+                        <!--Name-->
+                        <div class="marginElements">
+                            <label for="inputName" class="form-label secondary_title">Nombre:</label>
+                            <InputText type="text" @bind-Value="newUser.Name" class="form-control inputsClass" id="inputName" maxlength="15" required />
+                            <ValidationMessage For="@(()=> newUser.Name)"> </ValidationMessage>
+                        </div>
+
+                        <!--First last name-->
+                        <div class="marginElements">
+                            <label for="inputFLastName" class="form-label secondary_title">Primer apellido:</label>
+                            <InputText type="text" @bind-Value="newUser.F_Last_Name" class="form-control inputsClass" id="inputFLastName" maxlength="15" required />
+                            <ValidationMessage For="@(()=> newUser.F_Last_Name)"> </ValidationMessage>
+                        </div>
+
+                        <!--Second last name-->
+                        <div class="marginElements">
+                            <label for="inputSLastName" class="form-label secondary_title">Segundo apellido:</label>
+                            <InputText type="text" @bind-Value="newUser.S_Last_Name" class="form-control inputsClass" id="inputSLastName" maxlength="15" required />
+                            <ValidationMessage For="@(()=> newUser.S_Last_Name)"> </ValidationMessage>
+                        </div>
+
+                        <!--Phone number-->
+                        <div class="mb-3">
+                            <label for="phone" class="form-label secondary_title">Telefono:</label>
+                            <InputText type="text" @bind-Value="@newPhone.Phone_Number" class="form-control inputsClass" id="inputPhoneNumber" required maxlength="8" />
+                            <ValidationMessage For="@(()=> newPhone.Phone_Number)"> </ValidationMessage>
+
+                        </div>
+
+                        <!--Birth date-->
+                        <div class="marginElements">
+                            <label for="inputBDate" class="control-label secondary_title">Fecha de nacimiento:</label>
+                            <InputDate type="date" @bind-Value="newUser.Birth_Date" class="form-control birthdate" id="inputBDate" />
+                            <ValidationMessage For="@(()=> newUser.Birth_Date)"> </ValidationMessage>
+                        </div>
+
+                        <!--Image-->
+                        <div class="marginElements">
+                            <div class="flexElementsColumns">
+                                <label for="imageUser" class="secondary_title">Foto de perfil:</label>
+                                @if (imageUrl != "")
+                                {
+                                    <img src="@imageUrl" class="userImage" />
+                                }
+                                else
+                                {
+                                    <img src="/images/images.png" class="userImage" />
+                                }
+                                <InputFile OnChange="uploadImage" class="uploadPhoto form-control" accept="image/png, image/jpg, image/jpeg" id="imageUser" />
+                                <label for="imageUser" class="alert">@warning</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="principalObject">
+                <div class="flexDivStart">
+                    <div class="objects">
+                        <!--Address-->
+                        <!--Province, Canton and District-->
+                        <div class="marginElements">
+                            <label class="control-label secondary_title">Dirección:</label>
+                        </div>
+
+                        <div class="marginElements flexElementsColumns">
+                            <label for="Province" class="secondary_title control-label">Provincia:</label>
+                            <select id="Province" class="form-control" @onchange="getCantons" required>
+                                <option value="" selected hidden>Provincia</option>
+                                @foreach (var province in _province)
+                                {
+                                    <option>@province.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="marginElements flexElementsColumns">
+
+                            <label for="Canton" class="secondary_title control-label">Cantón:</label>
+                            <select id="Canton" class="form-control" @onchange="getDistricts" disabled required>
+                                <option value="" selected hidden>Cantón</option>
+                                @foreach (var canton in _canton)
+                                {
+                                    <option>@canton.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="marginElements flexElementsColumns">
+
+                            <label for="District" class="secondary_title control-label">Distrito:</label>
+                            <select id="District" class="form-control" disabled required>
+                                <option value="" selected hidden>Distrito</option>
+                                @foreach (var district in _district)
+                                {
+                                    <option>@district.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!--Exact address-->
+                        <div class="marginElements">
+                            <label class="secondary_title">Dirección exacta: </label>
+                            <InputTextArea class="form-control inputsClass" @bind-Value="newMembers.Direction" maxlength="200" rows="3" required></InputTextArea>
+                            <ValidationMessage For="@(()=> newMembers.Direction)"> </ValidationMessage>
+                        </div>
+
+                        <!--Categories and Presentation-->
+                        <div class="marginElements">
+                            <!--Categories only for client users-->
+                            @if (typeOfUser == "Client" || typeOfUser == "Entrepreneur")
+                            {
+                                <!-- Button trigger modal -->
+                                <div class="marginElements flexElementsColumns">
+                                    <label class="secondary_title">Categorías preferidas: </label>
+                                    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                                        Ver categorías
+                                    </button>
+                                </div>
+
+                                <!-- Modal -->
+                                <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="exampleModalLabel">Seleccione las categorías de su preferencia</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="accordion" id="accordionCategories">
+
+                                                    <div class="accordion-item flexElementsColumns">
+                                                        @foreach (var category in _selectCategories)
+                                                        {
+                                                            <label class="secondary_title" id="@category.First().Id">
+                                                                <div class="form-check styleDropdown">
+                                                                    <input type="checkbox" id="box_@category.First().Id" value="@category.First().Id" />
+                                                                    <label class="marginDropdown" for="box_@category.First().Id">@category.First().Title</label>
+                                                                    <button class="accordion-button collapsed acordionSize" type="button" data-bs-toggle="collapse" data-bs-target="#cat_@category.First().Id" aria-expanded="false" aria-controls="cat_@category.First().Id"></button>
+                                                                </div>
+                                                            </label>
+                                                            <div id="cat_@category.First().Id" class="accordion-collapse collapse" aria-labelledby="@category.First().Id" data-bs-parent="#accordionCategories">
+                                                                <div class="accordion-body">
+                                                                    @foreach (var innerCategory in category)
+                                                                    {
+                                                                        if (innerCategory != category.First())
+                                                                        {
+                                                                            <div class="form-check">
+                                                                                <input type="checkbox" id="box_@innerCategory.Id" value="@innerCategory.Id" />
+                                                                                <label class="marginDropdown" for="box_@innerCategory.Id">@innerCategory.Title</label>
+                                                                            </div>
+                                                                        }
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer flex-center">
+                                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!--Presentation Only for entrepreneur users-->
+                            @if (typeOfUser == "Entrepreneur")
+                            {
+                                <label class="secondary_title">Presentación</label>
+                                <InputTextArea class="form-control inputsClass" @bind-Value="newEntrepreneur.Presentation" maxlength="210" rows="3" required></InputTextArea>
+                                <ValidationMessage For="@(()=> newEntrepreneur.Presentation)"> </ValidationMessage>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Submit button, execute de registrations button-->
+        <center>
+            <button type="submit" class="btn btn-primary marginButton">@buttonMessage</button>
+        </center>
+    </EditForm>
+}
+
+@code{
+    /*Registration data Atributes*/
+    //Global
+    private bool _isLoading = true;
+    private string buttonMessage = "Registrarse";
+    //Entities
+    private User newUser = new User();
+    private Members newMembers = new Members();
+    private Administrator newAdmin = new Administrator();
+    private Entrepreneur newEntrepreneur = new Entrepreneur();
+    //Password
+    private string password;
+    private string txtType = "password";
+    private string text = "Mostrar";
+    //Address
+    private string province;
+    private string canton;
+    private string district;
+    private IList<Province> _province;
+    private IList<Canton> _canton;
+    private IList<District> _district;
+    //Image
+    private string imageUrl = "";
+    private byte[] buffer;
+    //Categories
+    private IList<Category> _categories;
+    private IList<Category> _parents;
+    private IList<IList<Category>> _selectCategories = new List<IList<Category>>();
+    private IList<Category> _children;
+    private IList<Category> _subCategory = new List<Category>();
+    //Confirmarion email Atributes
+    private bool _verificandoCorreo = true;
+    private string hash_correo = "";
+    private EmailConfirmation _email;
+    private bool error = false;
+    //Type of User
+    private string typeOfUser;
+    private Phones newPhone = new Phones();
+    int number;
+
+    private string warning = "";
+
+    /*
+    Brief: Load provinces, cantons, districts and main categories.
+    Parameters:
+    Returns:
+    */
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("email", out var parameter))
+        {
+            hash_correo = parameter;
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("type", out var parameter2))
+            {
+                typeOfUser = parameter2;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(hash_correo))
+        {
+            _email = await RegisterService.getEmailConfirmation(hash_correo);
+            if (_email == null)
+            {
+                NavigationManager.NavigateTo("/messagePage?type=3");
+                error = true;
+            }
+            else
+            {
+                bool confirmado = await RegisterService.getUserConfirmationEmail(_email.Email);
+                if (confirmado)
+                {
+                    NavigationManager.NavigateTo("/messagePage?type=3");
+                    error = true;
+                }
+                bool expiration = RegisterService.verifyExpirationDate(_email);
+                if (expiration)
+                {
+                    NavigationManager.NavigateTo("/ExpirationError?email=" + _email.Hash_Code + "&type=" + 1);
+                    error = true;
+                }
+            }
+        }
+        if (!error)
+        {
+            if(typeOfUser == "Entrepreneur") { buttonMessage = "Continuar"; }
+            _province = await RegisterService.listProvinces();
+            _canton = await RegisterService.listCantons();
+            _district = await RegisterService.listDistricts();
+            _categories = await RegisterService.listCategories();
+            _parents = await RegisterService.getCategoryParents();
+            _isLoading = false;
+
+
+            foreach (var parents in _parents)
+            {
+                _subCategory.Clear();
+                _subCategory.Add(parents);
+                _children = await RegisterService.getChildrenOfCategory((int)parents.Id);
+                await setNewCategory(_children);
+                _selectCategories.Add(new List<Category>(_subCategory));
+            }
+        }
+    }
+
+    /*
+    Brief: Shows the profile picture that the user uploaded.
+    Parameters InputFileChangeEventArgs e:
+    Returns:
+    */
+    private async Task uploadImage(InputFileChangeEventArgs e)
+    {
+        foreach (var imageFile in e.GetMultipleFiles(1))
+        {
+            var contentType = imageFile.ContentType;
+            string fileType = contentType.ToString().Substring(0, 5);
+            if (!fileType.Equals("image"))
+            {
+                imageUrl = "/images/images.png";
+                buffer = await System.IO.File.ReadAllBytesAsync("wwwroot/images/images.png");
+                warning = "Formato de foto incorrecto, asegurese que la foto se refleje en la página";
+                break;
+            }
+            var resizedFile = await imageFile.RequestImageFileAsync("image/png", 200, 200);
+            buffer = new byte[resizedFile.Size];
+            await resizedFile.OpenReadStream().ReadAsync(buffer);
+            imageUrl = $"data:image/png;base64,{Convert.ToBase64String(buffer)}";
+        }
+    }
+
+    /*
+    Brief: Store the information of the new user in the database.
+    Parameters:
+    Returns:
+    */
+    private async void insertUser()
+    {
+        if (buffer == null)
+        {
+            buffer = await System.IO.File.ReadAllBytesAsync("wwwroot/images/images.png");
+        }
+
+        var ageInDays = DateTime.Now - newUser.Birth_Date;
+        if (ageInDays.TotalDays >= 6570) //18 years in days
+        {
+            User u = new User
+            {
+                Email = _email.Email,
+                Name = newUser.Name,
+                F_Last_Name = newUser.F_Last_Name,
+                S_Last_Name = newUser.S_Last_Name,
+                Birth_Date = newUser.Birth_Date,
+                Province_Name = province,
+                Canton_Name = canton,
+                District_Name = await JsRuntime.InvokeAsync<string>("getValue", "District"),
+                Email_Confirmation = true,
+                Photo = buffer,
+            };
+            await RegisterService.updateUser(u);
+
+            if (typeOfUser == "Client" || typeOfUser == "Entrepreneur")
+            {
+                Members m = new Members
+                {
+                    User_Email = _email.Email,
+                    Score = 0,
+                    Lat = 1.0,
+                    Long = 1.0,
+                    Direction = newMembers.Direction,
+                };
+                await RegisterService.insertNewMember(m);
+
+                // Likes for clients ant entrepreneurs
+                int selections = -1; // Sin categorías favoritas
+                foreach (var category in _categories)
+                {
+                    Console.WriteLine(category.Id.ToString());
+                    selections = await JsRuntime.InvokeAsync<int>("getSelectedValues", "box_" + category.Id.ToString());
+                    if (selections != -1)
+                    {
+                        Likes l = new Likes
+                        {
+                            Members_Email = _email.Email,
+                            Category_Id = selections,
+                        };
+                        RegisterService.AddLikes(l);
+                    }
+                }
+
+                if (typeOfUser == "Client") // Client
+                {
+                    Client cl = new Client
+                    {
+                        User_Email = _email.Email,
+                    };
+                    await RegisterService.insertNewClient(cl);
+
+                    ShoppingCart s = new ShoppingCart
+                    {
+                        Email = _email.Email,
+                    };
+
+                    await RegisterService.insertNewShoppingCart(s);
+
+                }
+                else // Entrepreneur
+                {
+                    Entrepreneur e = new Entrepreneur
+                    {
+                        User_Email = _email.Email,
+                        Presentation = newEntrepreneur.Presentation,
+                    };
+                    await RegisterService.insertNewEntrepreneur(e);
+                }
+
+                Phones p = new Phones
+                {
+                    User_Email = _email.Email,
+                    Phone_Number = newPhone.Phone_Number,
+                };
+                await RegisterService.insertNewPhone(p);
+            }
+            else // Administrator
+            {
+                Administrator a = new Administrator
+                {
+                    User_Email = _email.Email,
+                };
+
+                ActiveAdministrators activeAdmin = new ActiveAdministrators
+                {
+                    Email = _email.Email,
+                    Creation_Date = DateTime.Now,
+                    Response = false,
+                    Confirm = false,
+                    Active = false,
+                    Response_Date = DateTime.MinValue,
+                };
+
+                Phones p = new Phones
+                {
+                    User_Email = _email.Email,
+                    Phone_Number = newPhone.Phone_Number,
+                };
+
+                await RegisterService.insertNewPhone(p);
+                await RegisterService.addNewActiveAdministrator(activeAdmin);
+                await RegisterService.insertNewAdministrator(a);
+            }
+            if (typeOfUser == "Administrator")
+            {
+                NavigationManager.NavigateTo("/messagePage?type=8");
+            }
+            else
+            {
+                //if(typeOfUser == "Entrepreneur") { NavigationManager.NavigateTo("/entrepreneur_payment_methods/" + _email.Email); }
+                if (typeOfUser == "Entrepreneur") { NavigationManager.NavigateTo("/entrepreneur_payment_methods?email=" + _email.Email + "&userType=" + typeOfUser); }
+                //else { NavigationManager.NavigateTo("/Login?type=" + typeOfUser);}
+                else { NavigationManager.NavigateTo("/messagePage?type=9&userType=" + typeOfUser); }
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alerta", "Solo personas mayores de edad pueden registrarse en la página");
+            //await JsRuntime.InvokeVoidAsync("abrirModal");
+        }
+    }
+
+    /*
+    Brief: Obtains the list of cantons according to the province chosen by the user.
+    Parameters:
+    Returns:
+    */
+    public async Task getCantons()
+    {
+        province = await JsRuntime.InvokeAsync<string>("getValue", "Province");
+        _canton = RegisterService.getListCantonsByProvince(province);
+        _district = RegisterService.getListDistrictsByCanton(".");
+        await JsRuntime.InvokeVoidAsync("resetOption", "Canton");
+        await JsRuntime.InvokeVoidAsync("resetOption", "District");
+        await JsRuntime.InvokeVoidAsync("enabled", "Canton");
+        await JsRuntime.InvokeVoidAsync("enabled", "District");
+    }
+
+    /*
+    Brief: Obtains the list of districts according to the canton chosen by the user.
+    Parameters:
+    Returns:
+    */
+    public async Task getDistricts()
+    {
+        canton = await JsRuntime.InvokeAsync<string>("getValue", "Canton");
+        _district = RegisterService.getListDistrictsByCanton(canton);
+        await JsRuntime.InvokeVoidAsync("resetOption", "District");
+    }
+
+    public async Task setNewCategory(IList<Category> parentCategory)
+    {
+        foreach (var newParent in parentCategory)
+        {
+            _subCategory.Add(newParent);
+            await setNewCategory(await RegisterService.getChildrenOfCategory((int)newParent.Id));
+        }
+    }
+}

@@ -1,0 +1,904 @@
+﻿@page "/"
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Domain.RegisterContext.Entities
+@using EmprendeUCR.Application.RegisterContext
+@using Microsoft.AspNetCore.WebUtilities
+@using Syncfusion.Blazor.TreeGrid;
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Inputs
+@using EmprendeUCR.Application.HomePageClientContext
+
+@inject IHomePageClientService HomePageClientService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@if (_isLoading)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="padre">
+
+        <div class="izquierdo">
+
+            <div class="flex-buscar">
+                <input @bind="@inputValue" @onkeyup="@EnterKey" class="form-control mr-sm-2" type="search" placeholder="Buscar productos" aria-label="Search" />
+                <button @onclick="buscar" class="btn btn-primary" type="submit">Buscar</button>
+            </div>
+
+            <SfToolbar ID="ToolBar">
+                <ToolbarItems>
+                    <ToolbarItem OnClick="@TreeGrid.ExpandAll" Text="Expandir" TooltipText="Muestra todas categorías"></ToolbarItem>
+                    <ToolbarItem OnClick="@TreeGrid.CollapseAll" Text="Colapsar" TooltipText="Oculta todas las subcategorías"></ToolbarItem>
+                </ToolbarItems>
+            </SfToolbar>
+            <SfTreeGrid ID="TreeGrid" @ref="TreeGrid" AllowSorting="true" AllowRowDragAndDrop="false" DataSource="@_categories" IdMapping="Id" ParentIdMapping="ParentId" AllowSelection="true" TreeColumnIndex="0" EnableCollapseAll="true">
+                <TreeGridEvents TValue="Category" RowDropped="Rowdrop" RowSelected="SelectionHandler"></TreeGridEvents>
+                <TreeGridSortSettings>
+                    <TreeGridSortColumns>
+                        <TreeGridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></TreeGridSortColumn>
+                    </TreeGridSortColumns>
+                </TreeGridSortSettings>
+                <TreeGridColumns>
+                    <TreeGridColumn Field="Title" HeaderText="Nombre" Width="100"></TreeGridColumn>
+                </TreeGridColumns>
+            </SfTreeGrid>
+        </div>
+
+        <div class="derecho">
+
+            <h5 class="title">Ofertas</h5>
+            <div class="container my-3">
+                <div id="carousel1" class="carousel slide  carousel-dark text-center" data-bs-interval="false">
+                    <div class="carousel-indicators">
+                        @for (int index = 0; index < Math.Ceiling((decimal)_offers2.Count() / 3); index++)
+                        {
+                            if (index == 0)
+                            {
+                                <button type="button" data-bs-target="#carousel1" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                                <br />
+                            }
+                            else
+                            {
+                                <button type="button" data-bs-target="#carousel1" data-bs-slide-to=@index aria-label="Slide @index"></button> <br />
+                                <br />
+
+                            }
+                        }
+                    </div>
+                    <div class="carousel-inner py-4">
+
+                        @if (_offers.Count() > 0)
+                        {
+                            int productsSize = _offers2.Count();
+
+                            for (int i = 0; i < productsSize; i++)
+                            {
+                                if (i == 0)
+                                {
+                                    <div class="carousel-item active">
+                                        <div class="container">
+                                            <div class="row">
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+                                                    @if (j < productsSize)
+                                                    {
+                                                        if (_offers2[j].Expire_Date > DateTime.Now)
+                                                        {
+
+                                                            <div class="card border-blue">
+                                                                @{
+                                                                    Offer myOffer = _offers2[j];
+                                                                    string myImageSource = IMAGE_NOT_FOUND;
+                                                                    string deathLine = _offers2[j].Expire_Date.Day + " / " +_offers2[j].Expire_Date.Month + "/ " +_offers2[j].Expire_Date.Year; 
+                                                                }
+
+                                                                @if (photosDisplay.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID) != null)
+                                                                {
+                                                                    myImageSource = HomePageClientService.convertImageDisplay(photosDisplay.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID).Photos);
+                                                                }
+                                                                else if (servicePhotos.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID) != null)
+                                                                {
+                                                                    myImageSource = @HomePageClientService.convertImageDisplay(servicePhotos.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID).Photos);
+                                                                }
+
+                                                                <h4>@_offers2[j].Offer_Description</h4>
+
+
+                                                                <button class="button-img" @onclick="() => showDetailsOffer( myOffer, myImageSource, deathLine)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                                <pre class="pre">  ₡@_offers2[j].Discount</pre>
+
+                                                                <p> Expira: @deathLine </p>
+
+                                                                
+                                                                @{int n = j;
+                                                                }
+                                                                @if (log)
+                                                                {
+                                                                    <button class="btn btn-primary botonCompra" @onclick="() => addOfferInCart(n)">Añadir al carrito</button>
+
+                                                                }
+                                                            </div>
+                                                        }
+                                                    }
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="carousel-item">
+                                        <div class="container">
+                                            <div class="row">
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+
+                                                    @if (j < productsSize)
+                                                    {
+                                                        if (_offers2[j].Expire_Date > DateTime.Now)
+                                                        {
+                                                            <div class="card border-blue">
+                                                                @{
+                                                                    Offer myOffer = _offers2[j];
+                                                                    string myImageSource = IMAGE_NOT_FOUND;
+                                                                    string deathLine = _offers2[j].Expire_Date.Day + " / " + _offers2[j].Expire_Date.Month + "/ " + _offers2[j].Expire_Date.Year;
+                                                                }
+
+                                                                @if (photosDisplay.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID) != null)
+                                                                {
+                                                                    myImageSource = HomePageClientService.convertImageDisplay(photosDisplay.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID).Photos);
+                                                                }
+                                                                else if (servicePhotos.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID) != null)
+                                                                {
+                                                                    myImageSource = @HomePageClientService.convertImageDisplay(servicePhotos.FirstOrDefault(p => p.Code_ID == _isOffer2[j].Code_ID).Photos);
+                                                                }
+
+                                                                <h4>@_offers2[j].Offer_Description</h4>
+
+
+                                                                <button class="button-img" @onclick="() => showDetailsOffer( myOffer, myImageSource,deathLine)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                                <pre class="pre">  ₡@_offers2[j].Discount</pre>
+
+                                                                <p> Expira: @deathLine </p>
+
+                                                                @{int n = j;
+
+
+                                                                }
+                                                                @if (log)
+                                                                {
+                                                                    <button class="btn btn-primary botonCompra" @onclick="() => addOfferInCart(n)">Añadir al carrito</button>
+
+                                                                }
+                                                            </div>
+                                                        }
+                                                    }
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+
+                    </div>
+                    <br />
+                    <div class="d-flex justify-content-center mb-4">
+                        <button class="carousel-control-prev position-relative" type="button" data-bs-target="#carousel1" data-bs-slide="prev" style="margin-right:20px">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next position-relative" type="button" data-bs-target="#carousel1" data-bs-slide="next" style="margin-left:20px">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <hr>
+
+            <h5 class="title">Productos Recomendados</h5>
+
+            <div class="container my-5">
+                <div id="carousel2" class="carousel slide carousel-dark text-center" data-bs-interval="false">
+                    <div class="carousel-indicators">
+                        @for (int index = 0; index < Math.Ceiling((decimal)_recommendedProducts.Count() / 3); index++)
+                        {
+                            if (index == 0)
+                            {
+                                <button type="button" data-bs-target="#carousel2" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                                <br />
+
+                            }
+                            else
+                            {
+                                <button type="button" data-bs-target="#carousel2" data-bs-slide-to=@index aria-label="Slide @index"></button> <br />
+                                <br />
+
+                            }
+                        }
+                    </div>
+                    <div class="carousel-inner py-4">
+
+                        @if (_recommendedProducts.Count() > 0)
+                        {
+                            int productsSize = _recommendedProducts.Count();
+
+                            for (int i = 0; i < productsSize; i++)
+                            {
+                                if (i == 0)
+                                {
+                                    <div class="carousel-item active">
+                                        <div class="container">
+                                            <div class="row">
+
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+                                                    @if (j < productsSize)
+                                                    {
+                                                        <div class="card border-blue">
+                                                            @{
+                                                                Product myProduct = _recommendedProducts[j];
+                                                                ProductPhotos myImageProduct = photosDisplay.FirstOrDefault(p => p.Code_ID == myProduct.Code_ID);
+                                                                int myAviabiliy = (_productService.FirstOrDefault(p => p.Code_ID.Equals(myProduct.Code_ID))).Availability;
+                                                                string myImageSource = IMAGE_NOT_FOUND;
+                                                            }
+
+                                                            @if (myImageProduct != null)
+                                                            {
+                                                                myImageSource = @HomePageClientService.convertImageDisplay(myImageProduct.Photos);
+                                                            }
+
+                                                            <h4>@myProduct.Product_Name</h4>
+
+
+                                                            <button class="button-img" @onclick="() => showDetails( myProduct, myImageSource,myAviabiliy)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                            <p class="pre">₡@myProduct.Price</p>
+                                                            @if (myAviabiliy > 0)
+                                                            {<p class="text-success"><b>Disponible </b></p>}
+                                                            else
+                                                            {<p class="text-danger"><b>No disponible</b> </p>}
+
+                                                            @if (log && myAviabiliy > 0)
+                                                            {
+                                                                <button class="btn btn-primary botonCompra" @onclick="() => addInCart(myProduct)">Añadir al carrito</button>
+                                                            }
+                                                        </div>
+                                                    }
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="carousel-item">
+                                        <div class="container">
+                                            <div class="row">
+
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+                                                    @if (j < productsSize)
+                                                    {
+                                                        <div class="card border-blue">
+                                                            @{
+                                                                Product myProduct = _recommendedProducts[j];
+                                                                ProductPhotos myImageProduct = photosDisplay.FirstOrDefault(p => p.Code_ID == myProduct.Code_ID);
+                                                                int myAviabiliy = (_productService.FirstOrDefault(p => p.Code_ID.Equals(myProduct.Code_ID))).Availability;
+                                                                string myImageSource = IMAGE_NOT_FOUND;
+                                                            }
+
+                                                            @if (myImageProduct != null)
+                                                            {
+                                                                myImageSource = @HomePageClientService.convertImageDisplay(myImageProduct.Photos);
+                                                            }
+
+                                                            <h4>@myProduct.Product_Name</h4>
+
+                                                            <button class="button-img" @onclick="() => showDetails( myProduct, myImageSource,myAviabiliy)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                            <p class="pre">₡@myProduct.Price</p>
+                                                            @if (myAviabiliy > 0)
+                                                            {<p class="text-success"><b>Disponible </b></p>}
+                                                            else
+                                                            {<p class="text-danger"><b>No disponible</b> </p>}
+
+                                                            @if (log && myAviabiliy > 0)
+                                                            {
+                                                                <button class="btn btn-primary botonCompra" @onclick="() => addInCart(myProduct)">Añadir al carrito</button>
+                                                            }
+                                                        </div>
+                                                    }
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+
+                    </div>
+                    <br />
+                    <div class="d-flex justify-content-center mb-4">
+                        <button class="carousel-control-prev position-relative " type="button" data-bs-target="#carousel2" data-bs-slide="prev" style="margin-right:20px">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next  position-relative" type="button" data-bs-target="#carousel2" data-bs-slide="next" style="margin-left:20px">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+
+
+                </div>
+            </div>
+
+            <hr>
+
+            <h5 class="title">Novedades</h5>
+
+            <div class="container my-5">
+                <div id="carousel3" class="carousel slide carousel-dark text-center" data-bs-interval="false">
+                    <div class="carousel-indicators">
+
+                        @for (int index = 0; index < Math.Ceiling((decimal)_newProducts.Count() / 3); index++)
+                        {
+                            if (index == 0)
+                            {
+                                <button type="button" data-bs-target="#carousel3" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                                <br />
+
+                            }
+                            else
+                            {
+                                <button type="button" data-bs-target="#carousel3" data-bs-slide-to=@index aria-label="Slide @index"></button> <br />
+                                <br />
+
+                            }
+                        }
+
+
+                    </div>
+                    <div class="carousel-inner py-4">
+
+                        @if (_newProducts.Count() > 0)
+                        {
+                            int productsSize = _newProducts.Count();
+
+                            for (int i = 0; i < productsSize; i++)
+                            {
+                                if (i == 0)
+                                {
+                                    <div class="carousel-item active">
+                                        <div class="container">
+                                            <div class="row">
+
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+                                                    @if (j < productsSize)
+                                                    {
+                                                        <div class="card border-blue">
+                                                            @{
+                                                                Product myProduct = _newProducts[j];
+                                                                ProductPhotos myImageProduct = photosDisplay.FirstOrDefault(p => p.Code_ID == myProduct.Code_ID);
+                                                                int myAviabiliy = (_productService.FirstOrDefault(p => p.Code_ID.Equals(myProduct.Code_ID))).Availability;
+                                                                string myImageSource = IMAGE_NOT_FOUND;
+                                                            }
+
+                                                            @if (myImageProduct != null)
+                                                            {
+                                                                myImageSource = @HomePageClientService.convertImageDisplay(myImageProduct.Photos);
+                                                            }
+
+                                                            <h4>@myProduct.Product_Name</h4>
+
+
+                                                            <button class="button-img" @onclick="() => showDetails( myProduct, myImageSource,myAviabiliy)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                            <p class="pre">₡@myProduct.Price</p>
+                                                            @if (myAviabiliy > 0)
+                                                            {<p class="text-success"><b>Disponible </b></p>}
+                                                            else
+                                                            {<p class="text-danger"><b>No disponible</b> </p>}
+
+                                                            @if (log && myAviabiliy > 0)
+                                                            {
+                                                                <button class="btn btn-primary botonCompra" @onclick="() => addInCart(myProduct)">Añadir al carrito</button>
+                                                            }
+                                                        </div>
+                                                    }
+
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="carousel-item">
+                                        <div class="container">
+                                            <div class="row">
+
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+                                                    @if (j < productsSize)
+                                                    {
+                                                        <div class="card border-blue">
+                                                            @{
+                                                                Product myProduct = _newProducts[j];
+                                                                ProductPhotos myImageProduct = photosDisplay.FirstOrDefault(p => p.Code_ID == myProduct.Code_ID);
+                                                                int myAviabiliy = (_productService.FirstOrDefault(p => p.Code_ID.Equals(myProduct.Code_ID))).Availability;
+                                                                string myImageSource = IMAGE_NOT_FOUND;
+                                                            }
+
+                                                            @if (myImageProduct != null)
+                                                            {
+                                                                myImageSource = @HomePageClientService.convertImageDisplay(myImageProduct.Photos);
+                                                            }
+
+                                                            <h4>@myProduct.Product_Name</h4>
+
+                                                            <button class="button-img" @onclick="() => showDetails( myProduct, myImageSource,myAviabiliy)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                            <p class="pre">₡@myProduct.Price</p>
+                                                            @if (myAviabiliy > 0)
+                                                            {<p class="text-success"><b>Disponible </b></p>}
+                                                            else
+                                                            {<p class="text-danger"><b>No disponible</b> </p>}
+
+                                                            @if (log && myAviabiliy > 0)
+                                                            {
+                                                                <button class="btn btn-primary botonCompra" @onclick="() => addInCart(myProduct)">Añadir al carrito</button>
+                                                            }
+                                                        </div>
+                                                    }
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+
+                    </div>
+                    <br />
+                    <div class="d-flex justify-content-center mb-4">
+                        <button class="carousel-control-prev position-relative" type="button" data-bs-target="#carousel3" data-bs-slide="prev" style="margin-right:20px">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next position-relative" type="button" data-bs-target="#carousel3" data-bs-slide="next" style="margin-left:20px">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+
+
+                </div>
+            </div>
+
+            <hr>
+
+            <h5 class="title">Otros usuarios han comprado...</h5>
+
+            <div class="container my-5">
+                <div id="carousel4" class="carousel slide carousel-dark text-center" data-bs-interval="false">
+                    <div class="carousel-indicators">
+                        @for (int index = 0; index < Math.Ceiling((decimal)_purchasedProducts.Count() / 3); index++)
+                        {
+                            if (index == 0)
+                            {
+                                <button type="button" data-bs-target="#carousel4" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                                <br />
+
+                            }
+                            else
+                            {
+                                <button type="button" data-bs-target="#carousel4" data-bs-slide-to=@index aria-label="Slide @index"></button> <br />
+                                <br />
+
+                            }
+                        }
+                    </div>
+                    <div class="carousel-inner py-4">
+
+                        @if (_purchasedProducts.Count() > 0)
+                        {
+                            int productsSize = _purchasedProducts.Count();
+
+                            for (int i = 0; i < productsSize; i++)
+                            {
+                                if (i == 0)
+                                {
+                                    <div class="carousel-item active">
+                                        <div class="container">
+                                            <div class="row">
+
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+                                                    @if (j < productsSize)
+                                                    {
+                                                        <div class="card border-blue">
+                                                            @{
+                                                                Product myProduct = _purchasedProducts[j];
+                                                                ProductPhotos myImageProduct = photosDisplay.FirstOrDefault(p => p.Code_ID == myProduct.Code_ID);
+                                                                int myAviabiliy = (_productService.FirstOrDefault(p => p.Code_ID.Equals(myProduct.Code_ID))).Availability;
+                                                                string myImageSource = IMAGE_NOT_FOUND;
+                                                            }
+
+                                                            @if (myImageProduct != null)
+                                                            {
+                                                                myImageSource = @HomePageClientService.convertImageDisplay(myImageProduct.Photos);
+                                                            }
+
+                                                            <h4>@myProduct.Product_Name</h4>
+
+
+                                                            <button class="button-img" @onclick="() => showDetails( myProduct, myImageSource,myAviabiliy)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                            <p class="pre">₡@myProduct.Price</p>
+
+                                                            @if (myAviabiliy > 0)
+                                                            {<p class="text-success"><b>Disponible </b></p>}
+                                                            else
+                                                            {<p class="text-danger"><b>No disponible</b> </p>}
+
+                                                            @if (log && myAviabiliy > 0)
+                                                            {
+                                                                <button type="button" class="btn btn-primary botonCompra" @onclick="() => addInCart(myProduct)">Añadir al carrito</button>
+                                                            }
+                                                        </div>
+                                                    }
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                else
+                                {
+                                    <div class="carousel-item">
+                                        <div class="container">
+                                            <div class="row">
+
+                                                @for (int j = i; j < i + 3; j++)
+                                                {
+                                                    @if (j < productsSize)
+                                                    {
+                                                        <div class="card border-blue">
+                                                            @{
+                                                                Product myProduct = _purchasedProducts[j];
+                                                                ProductPhotos myImageProduct = photosDisplay.FirstOrDefault(p => p.Code_ID == myProduct.Code_ID);
+                                                                int myAviabiliy = (_productService.FirstOrDefault(p => p.Code_ID.Equals(myProduct.Code_ID))).Availability;
+                                                                string myImageSource = IMAGE_NOT_FOUND;
+                                                            }
+
+                                                            @if (myImageProduct != null)
+                                                            {
+                                                                myImageSource = @HomePageClientService.convertImageDisplay(myImageProduct.Photos);
+                                                            }
+
+                                                            <h4>@myProduct.Product_Name</h4>
+
+
+                                                            <button class="button-img" @onclick="() => showDetails( myProduct, myImageSource,myAviabiliy)"><img class="imageProduct" src=@myImageSource /></button>
+
+                                                            <p class="pre">₡@myProduct.Price</p>
+
+                                                            @if (myAviabiliy > 0)
+                                                            {<p class="text-success"><b>Disponible </b></p>}
+                                                            else
+                                                            {<p class="text-danger"><b>No disponible</b> </p>}
+
+
+                                                            @if (log && myAviabiliy > 0)
+                                                            {
+                                                                <button type="button" class="btn btn-primary botonCompra" @onclick="() => addInCart(myProduct)">Añadir al carrito</button>
+                                                            }
+                                                        </div>
+                                                    }
+                                                }
+                                                @{i += 2;}
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+
+                    </div>
+                    <br />
+                    <div class="d-flex justify-content-center mb-4">
+                        <button class="carousel-control-prev position-relative" type="button" data-bs-target="#carousel4" data-bs-slide="prev" style="margin-right:20px">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next position-relative" type="button" data-bs-target="#carousel4" data-bs-slide="next" style="margin-left:20px">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Display product details modal -->
+    <CascadingValue Value="@inCart">
+        <EmprendeUCR.Presentation.HomePageClientContext.Component.DisplayProduct @ref="productModal" deathLine="@serviceDeathLineToShow" availability="@productAvailabilityToShowDetails" imageProduct="@productImageToShowDetails" isLoged="@log" addToCart="@(async (Product p) => { await addInCart(p); })" myProduct="@productToShowDetails">
+        </EmprendeUCR.Presentation.HomePageClientContext.Component.DisplayProduct>
+    </CascadingValue>
+
+    <!-- Display product add cart modal -->
+    <EmprendeUCR.Presentation.HomePageClientContext.Component.ModalAddCart @ref="addCartModal" inCart="@inCart">
+    </EmprendeUCR.Presentation.HomePageClientContext.Component.ModalAddCart>
+
+
+}
+
+
+@code{
+    //Static Variables
+    private static string IMAGE_NOT_FOUND = "/images/notfound.png";
+
+    //Private Variables
+    private ProductPhotos myActualImageProduct;
+    private string myActualImageSource;
+    private IList<Product> _recommendedProducts;
+    private IList<Product> _newProducts;
+    IList<ProductPhotos> photosDisplay;
+
+    IList<Service_Photos> servicePhotos;
+
+    private SfTreeGrid<Category> TreeGrid { get; set; }
+    private IList<Category> _categories;
+    private Category SelectedCategory;
+    private string inputValue = "";
+    private IList<Offer> _offers = new List<Offer>();
+    private IList<Offer> _offers2 = new List<Offer>();
+    private IList<ProductService> _productService;
+    private IList<Is_Offer> _isOffer = new List<Is_Offer>();
+    private IList<Is_Offer> _isOffer2 = new List<Is_Offer>();
+
+    private IList<Product> _purchasedProducts;
+
+    private bool log = false;
+
+    string email;
+
+    bool _isLoading = true;
+
+
+
+    //Product page
+    private EmprendeUCR.Presentation.HomePageClientContext.Component.DisplayProduct productModal { get; set; }
+    private Product productToShowDetails = new Product();
+    private string productImageToShowDetails = string.Empty;
+    private int productAvailabilityToShowDetails;
+    private bool inCart { get; set; }
+    private string serviceDeathLineToShow = string.Empty;
+
+    //Add cart modal
+    private EmprendeUCR.Presentation.HomePageClientContext.Component.ModalAddCart addCartModal { get; set; }
+
+    //On Initialized
+    protected override async Task OnInitializedAsync()
+    {
+        email = await sessionStorage.GetItemAsync<string>("Email");
+        if (email == null)
+        {
+            email = "noEmail";
+        }
+        else
+        {
+            log = true;
+        }
+
+        _recommendedProducts = HomePageClientService.listAllNewRecomendedProducts(email);
+        if (!_recommendedProducts.Any())
+        {
+            _recommendedProducts = HomePageClientService.listAllNewRecomendedProducts("noEmail");
+        }
+        _newProducts = HomePageClientService.listAllNewProducts();
+
+        _purchasedProducts = HomePageClientService.listPurchasedProducts(email);
+        if (!_purchasedProducts.Any())
+        {
+            _purchasedProducts = HomePageClientService.listPurchasedProducts("noEmail");
+        }
+
+        photosDisplay = HomePageClientService.listAllProductsPhotos();
+        _offers = await HomePageClientService.GetAllOffersAsync();
+
+        _categories = await HomePageClientService.getAllCategoriesAsync();
+        _productService = await HomePageClientService.GetAllProductsServicesAsync();
+        _isOffer = HomePageClientService.getIs_Offer();
+        servicePhotos = HomePageClientService.getServicePhotos();
+
+        _isLoading = false;
+
+
+        for (int i = 0; i < _offers.Count(); i++)
+        {
+
+            if (_offers[i].Expire_Date > DateTime.Now)
+            {
+                _offers2.Add(_offers[i]);
+
+            }
+
+        }
+
+        for (int j = 0; j < _offers2.Count(); j++)
+        {
+            for (int k = 0; k < _isOffer.Count(); k++)
+            {
+                if (_offers2[j].Offer_ID == _isOffer[k].Offer_ID)
+                {
+                    _isOffer2.Add(_isOffer[k]);
+
+                }
+            }
+        }
+
+
+    }
+
+    //RowDrop
+    private void Rowdrop(Syncfusion.Blazor.Grids.RowDragEventArgs<Category> args)
+    {
+        HomePageClientService.Rowdrop(args, this.TreeGrid);
+    }
+
+    //SelectionHandler
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Category> args)
+    {
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        if (SelectedCategories.Count() == 0)
+        {
+            SelectedCategory = null;
+        }
+        else
+        {
+            SelectedCategory = SelectedCategories.First();
+            if (HomePageClientService.verifyChildCategory(SelectedCategory.Id))
+            {
+                string categorySearch = "_categoryID = " + SelectedCategory.Id;
+                NavigationManager.NavigateTo($"/ProductsSearch/{categorySearch}", true);
+            }
+        }
+    }
+
+
+    private void buscar()
+    {
+        inputValue = inputValue.Replace(" ", string.Empty);
+        if (!string.IsNullOrEmpty(inputValue))
+        {
+            NavigationManager.NavigateTo($"/ProductsSearch/{inputValue}", true);
+        }
+    }
+
+    public void EnterKey(KeyboardEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(inputValue))
+        {
+            inputValue = inputValue.Replace(" ", string.Empty);
+            if ((e.Code == "Enter" || e.Code == "NumpadEnter") && !string.IsNullOrEmpty(inputValue))
+            {
+                NavigationManager.NavigateTo($"/ProductsSearch/{inputValue}", true);
+            }
+        }
+    }
+
+    private async Task addInCart(Product product)
+    {
+        bool productExist = await HomePageClientService.searchProductById(email, product.Code_ID);
+        if (productExist == false)
+        {
+            inCart = false;
+
+            ShoppingCartHas productToAdd = new ShoppingCartHas
+            {
+                Email = email,
+                Code_ID = product.Code_ID,
+                Entrepreneur_Email = product.Entrepreneur_Email,
+                Category_ID = product.Category_ID
+            };
+
+            await HomePageClientService.addProductShoppingCart(productToAdd);
+
+        }
+        else
+        {
+            inCart = true;
+        }
+        productModal.Close();
+
+        addCartModal.Open();
+
+    }
+
+    public void reload()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    private void showDetails(Product _product, string _source, int _availability, string deathLine = null)
+    {
+        productToShowDetails = _product;
+        productImageToShowDetails = _source;
+        productAvailabilityToShowDetails = _availability;
+        serviceDeathLineToShow = deathLine;
+        productModal.Open();
+    }
+
+    public async Task addOfferInCart(int offerPos)
+    {
+        Offer of = _offers2.ElementAt(offerPos);
+        IList<Is_Offer> offers = HomePageClientService.GetAllIs_OfferRelatedToOfferNOTAsync(of);
+        if (offers.Count() > 1)
+        {
+            await JsRuntime.InvokeVoidAsync("alerta", "No se pueden agregar ofertas compuestas de 2 productos o más");
+        }
+        else
+        {
+            Is_Offer is_Offer = offers.ElementAt(0);
+            bool productExist = await HomePageClientService.searchProductById(email, is_Offer.Code_ID);
+            if (productExist == false)
+            {
+                ShoppingCartHas product = new ShoppingCartHas
+                {
+                    Email = email,
+                    Code_ID = is_Offer.Code_ID,
+                    Entrepreneur_Email = is_Offer.User_Email,
+                    Category_ID = is_Offer.Category_ID
+                };
+
+                await HomePageClientService.addProductShoppingCart(product);
+
+                await JsRuntime.InvokeVoidAsync("alerta", "PRODUCTO AGREGADO AL CARRITO");
+
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alerta", "Producto ya se encuentra en el carrito");
+            }
+        }
+    }
+
+    private void showDetailsOffer(Offer _offer, string _source, string deathLine)
+    {
+        Product product = new Product();
+        product.Product_Description = _offer.Offer_Description;
+        product.Price = _offer.Discount;
+        string entrepreneur = _isOffer2.FirstOrDefault(offer => offer.Offer_ID.Equals(_offer.Offer_ID)).User_Email;
+        product.Entrepreneur_Email = entrepreneur;
+        showDetails(product, _source, int.MaxValue, deathLine);
+    }
+
+}

@@ -1,0 +1,128 @@
+﻿@page "/messagePage"
+@using Microsoft.AspNetCore.WebUtilities
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavigationManager
+
+@if (cargando)
+{
+    <h3> Cargando...</h3>
+}
+else
+{
+    <div class="messageBlock">
+        <h3> @principalMessage </h3>
+        <h5> @secundaryMessage </h5>
+        <h5> @thirdMessage  </h5>
+    </div>
+
+    if(message_Type == 9)
+    {
+        redirect();
+    }
+}
+
+
+
+@code {
+    int message_Type = 0;
+    string principalMessage = "Error desconocido";
+    string secundaryMessage = "";
+    string thirdMessage = "";
+    bool cargando = true;
+
+    string userType;
+
+    System.Timers.Timer timer;
+
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("type", out var parameter))
+        {
+            message_Type = Convert.ToInt32(parameter);
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userType", out var parameter2))
+            {
+                userType = parameter2;
+            }
+        }
+
+        if (message_Type > 0)
+        {
+            switch (message_Type)
+            {
+                /*Email Send failure*/
+                case 1:
+                    principalMessage = "Fallo en el envío de correo de confirmación.";
+                    secundaryMessage = "Correo ya ha sido registrado con anterioridad.";
+                    break;
+
+                /*Password modify success*/
+                case 2:
+                    principalMessage = "Contraseña modificada con éxito.";
+                    secundaryMessage = "Por favor inicie sesión con las nuevas credenciales.";
+                    break;
+
+                /*Error user registration*/
+                case 3:
+                    principalMessage = "Error registrando datos del usuario.";
+                    secundaryMessage = "Verifique su bandeja de entrada por un nuevo correo.";
+                    thirdMessage = "Si realizó el registro de datos con éxito, intente iniciar sesión.";
+                    break;
+
+                /*Email Send Success*/
+                case 4:
+                    principalMessage = "Correo de confirmación enviado con éxito.";
+                    secundaryMessage = "Por favor revise su bandeja de entrada.";
+                    break;
+
+                /*Password recover feedback*/
+                case 5:
+                    principalMessage = "Enviamos un correo a su cuenta.";
+                    secundaryMessage = "Por favor revise su bandeja de entrada y siga los pasos para recuperar su cuenta.";
+                    break;
+
+                /*Email not found*/
+                case 6:
+                    principalMessage = "Correo no encontrado.";
+                    secundaryMessage = "Por favor verifique que sea correcto.";
+                    break;
+
+                /*Admin back*/
+                case 7:
+                    principalMessage = "Usuario ya ha sido registrado como un administrador(a).";
+                    secundaryMessage = "Por favor registrese con otro tipo de cuenta.";
+                    break;
+
+                /*Admin register*/
+                case 8:
+                    principalMessage = "Registro realizado con éxito.";
+                    secundaryMessage = "Debe esperar a la confirmación de su cuenta.";
+                    thirdMessage = "Se le enviará un correo con el resultado de su solicitud.";
+                    break;
+                case 9:
+                    principalMessage = "Registro completado.";
+                    secundaryMessage = "Ahora será redirigido al inicio de sesión.";
+                    thirdMessage = "Espere un momento por favor.";
+                    break;
+                case 10:
+                    principalMessage = "El link de recuperar contraseña ha caducado.";
+                    secundaryMessage = "Solicite uno nuevo o intente iniciar sesión.";
+                    break;
+            }
+        }
+        cargando = false;
+    }
+
+    public void redirect()
+    {
+        timer = new System.Timers.Timer(5000);
+        timer.Elapsed += navigate;
+        timer.Enabled = true;
+    }
+
+    public void navigate(Object source, System.Timers.ElapsedEventArgs e)
+    {
+        timer.Enabled = false;
+        NavigationManager.NavigateTo("/Login?type=" + userType);
+    }
+}

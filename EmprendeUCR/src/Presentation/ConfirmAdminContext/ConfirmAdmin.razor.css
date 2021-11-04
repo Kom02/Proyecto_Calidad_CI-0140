@@ -1,0 +1,90 @@
+﻿h3 {
+    text-align: center;
+}
+
+html {
+    height: 100vh
+}
+
+.solicitudes {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.solicitudAdmin {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 55%;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background-color: #E9E9E9;
+}
+
+.display-row {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    text-align: justify;
+}
+
+.display-col {
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    text-align: justify;
+}
+
+.userImage {
+    width: 150px;
+    height: 150px;
+    border-radius: 10px;
+}
+
+.secondary_title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.datosPrincipales {
+    display: flex;
+    flex-direction: column;
+    align-content: flex-start;
+    align-items: flex-start;
+    text-align: center;
+    margin-right: 8%;
+    width: 40%;
+}
+
+.botonDatos {
+    margin-left: 4%;
+    margin-right: 4%;
+}
+
+.espacioArriba {
+    margin-top: 3%;
+}
+
+.tittle {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.botonClose {
+    margin-top: 1%;
+    margin-bottom: 1%;
+}

@@ -1,0 +1,105 @@
+﻿html {
+    height: 100vh
+}
+
+.permissions {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+}
+
+.userPermission {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    width: 60%;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    background-color: #E9E9E9;
+}
+
+.secondary_title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.display-row {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+}
+
+.display-modal {
+    display: flex;
+    flex-direction: row;
+    align-content: flex-start;
+}
+
+.espacioArriba {
+    margin-top: 3%;
+}
+
+.datosPrincipales {
+    display: flex;
+    flex-direction: column;
+    align-content: flex-start;
+    align-items: flex-start;
+    margin-right: 8%;
+    width: 40%;
+}
+
+.botonDatos {
+    margin-left: 2%;
+    margin-right: 2%;
+}
+
+.userImage {
+    width: 150px;
+    height: 150px;
+    border-radius: 10px;
+}
+
+.espacioArriba {
+    margin-top: 3%;
+}
+
+.title {
+    text-align: center;
+}
+
+.modal-body {
+    margin: auto;
+}
+
+.rolTitle {
+    margin-top: 10px;
+}
+
+.flex-buscar {
+    display: flex;
+    flex-direction: row;
+    width: 40%;
+    margin-bottom: 2px;
+    margin-top: 2px;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+}
+
+.searchBar {
+    margin-left: 6px;
+}
+
+.secondtitle {
+    text-align: center;
+    margin-top: 5px;
+}

@@ -1,0 +1,160 @@
+﻿@page "/viewreports"
+@using Syncfusion.Blazor.Grids;
+@using EmprendeUCR_WebApplication.Data.Services.Reports
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using EmprendeUCR_WebApplication.Data.Entities
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Inputs
+@using EmprendeUCR.Domain.Reports.Entities;
+@inject ReportService ReportService
+@inject BannedAccountService bannedAccount
+
+
+
+<h2>Visualizar Reportes Activos </h2>
+
+
+<SfToolbar ID="ToolBar">
+    <ToolbarItems>
+
+    </ToolbarItems>
+</SfToolbar>
+<SfGrid ID="Grid" @ref="Grid" AllowSorting="true" DataSource="@_reports" IdMapping="ID" ParentIdMapping="" AllowSelection="true" TreeColumnIndex="0">
+    <GridEvents TValue="Report" RowSelected="SelectionHandler" CommandClicked="CommandClickHandler"></GridEvents>
+    <GridEditSettings AllowDeleting="true" AllowEditing="true" AllowAdding="true"></GridEditSettings>
+    <GridSortSettings>
+        <GridSortColumns>
+            <GridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></GridSortColumn>
+        </GridSortColumns>
+    </GridSortSettings>
+    <GridColumns>
+        <GridColumn Field="Title" HeaderText="Titulo" Width="100"></GridColumn>
+        <GridColumn Field="Content" HeaderText="Descripción" Width="160"></GridColumn>
+        <GridColumn Field="ID" HeaderText="Identificacion" Width="160" IsPrimaryKey="true" Visible="false"></GridColumn>
+        <GridColumn Field="User" HeaderText="Email de Usuario" Width="160"></GridColumn>
+        <GridColumn HeaderText="Acciones" Width="160">
+            <GridCommandColumns>
+                <GridCommandColumn Type="CommandButtonType.None" Title="abc"
+                                   ButtonOption="@(new CommandButtonOptions() {Content="Ver Reporte"})" />
+            </GridCommandColumns>
+        </GridColumn>
+    </GridColumns>
+</SfGrid>
+
+
+
+<SfDialog ID="WatchDialog" Width="600px" IsModal="true" @bind-Visible="@visible">
+    <DialogTemplates>
+        <Header> Visualizar Reporte </Header>
+        <Content>
+            <p><b>Usuario Reportado</b></p>
+            <p>@user</p>
+            <br>
+            <p><b>Titulo</b></p>
+            <p>@title</p>
+            <br>
+            <p><b>Descripcion</b></p>
+            <p>@content</p>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton CssClass="e-info" Content="Suspender Temporalmente" OnClick="@AddTemporalBannedAccount" />
+        <DialogButton CssClass="e-warning" Content="Rechazar Reporte" OnClick="@deleteRequest" />
+        <DialogButton CssClass="e-danger" Content="Banear Usuario" OnClick="@AddBannedAccount" />
+        <DialogButton Content="Cancelar" OnClick="@closeViewReportDialog" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
+    //Private Variables
+    private SfGrid<Report> Grid { get; set; }
+    private IList<Report> _reports;
+    private Report SReport;
+    private double SelectedIndex;
+
+    ///
+    ///    View Report Watch Dialog
+    private bool visible = false;
+    private string title = "";
+    private string content = "";
+    private string user = "";
+
+    public void closeViewReportDialog()
+    {
+        visible = false;
+    }
+
+    //On Initialized
+    protected override async Task OnInitializedAsync()
+    {
+        _reports = await ReportService.GetAsync();
+    }
+
+    public void CommandClickHandler(CommandClickEventArgs<Report> args)
+    {
+        if (args.CommandColumn.ButtonOption.Content == "Ver Reporte")
+        {
+            var SelectedReport = ReportService.getReportById(args.RowData.ID);
+            SReport = SelectedReport;
+            title = SelectedReport.Title;
+            content = SelectedReport.Content;
+            user = SelectedReport.User;
+            visible = true;
+        }
+    }
+    //SelectionHandler
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Report> args)
+    {
+        var SelectedCategories = await this.Grid.GetSelectedRecords();
+        if (SelectedCategories.Count() == 0)
+        {
+            SReport = null;
+        }
+        else
+        {
+            SReport = SelectedCategories.First();
+            SelectedIndex = await Grid.GetRowIndexByPrimaryKey(SReport.ID);
+        }
+    }
+    private async void AddTemporalBannedAccount()
+    {
+        closeViewReportDialog();
+        ReportService.deleteReport(SReport);
+        BannedAccount Account = new BannedAccount();
+        Account.UserEmail = user;
+        DateTime time = DateTime.Now;              // Use current time
+        Account.BeginDate = time.Date;
+        Account.FinishDate = time.AddDays(15).Date;
+        Account.Type = 1;
+        bannedAccount.AddUser(Account);
+        var records = await Grid.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        await Grid.DeleteRecord("Title", record);
+    }
+    private async void AddBannedAccount()
+    {
+        closeViewReportDialog();
+        ReportService.deleteReport(SReport);
+        BannedAccount Account = new BannedAccount();
+        Account.UserEmail = user;
+        DateTime time = DateTime.Now; // Use current time
+        Account.BeginDate = time.Date;
+        Account.FinishDate = time.Date.AddDays(100);
+        Account.Type = 0;
+        bannedAccount.AddUser(Account);
+        var records = await Grid.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        await Grid.DeleteRecord("Title", record);
+    }
+    private async void deleteRequest()
+    {
+        closeViewReportDialog();
+        var selected = Grid.SelectedRowIndex;
+        var records = await Grid.GetCurrentViewRecords();
+        var record = records.Find(r => r.Title == title);
+        ReportService.deleteReport(SReport);
+        await Grid.DeleteRecord("Title", record);
+    }
+}

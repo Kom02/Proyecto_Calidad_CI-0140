@@ -1,0 +1,454 @@
+@page "/ShoppingCart"
+@using EmprendeUCR_WebApplication.Application.ShoppingCartContext
+@using EmprendeUCR_WebApplication.Domain.ShoppingCartContext.Entities
+@*@using EmprendeUCR_WebApplication.Data.Entities*@
+@using EmprendeUCR.Application.PaymentInfos
+@using EmprendeUCR.Domain.PaymentMethods.Entities
+@using EmprendeUCR.Application.PaymentMethods
+@using EmprendeUCR.Domain.PaymentInfos.Entities
+@using EmprendeUCR_WebApplication.Domain.Core.CoreEntities
+@using EmprendeUCR_WebApplication.Data.Entities.ContextShop
+@inject IShoppingCartService ShoppingCartService;
+@inject IHasPaymentInfoService HasPaymentInfoService;
+@inject ICardPaymentInfoService CardPaymentInfoService;
+@inject ISinpeIbanPaymentInfoService SinpeIbanInfoPaymentService;
+@inject ISinpeMovilPaymentInfoService SinpeMovilInfoPaymentService;
+
+
+
+@*@inject IPaymentMethodService PaymentMethodService*@
+
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage;
+@inject NavigationManager NavigationManager
+@* Display "Cargando"" message while shopping cart is still loading. *@
+@if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="mt-5 shopping-cart w-100 h-100 d-flex justify-content-between m-auto">
+
+        <div class="w-70 lista-items h-100 bg-white d-flex flex-column align-items-center" id="Products">
+            <div class="w-90 row my-5">
+                @*
+                    shopping.ShopLines.Count returns the current number of articles loaded
+                    into the shopping cart.
+                *@
+                <p class="fs-2">Productos en el carrito: @shopping.ShopLines.Count()</p>
+            </div>
+
+            <div class="w-90 row">
+                <div class="col-3 content-center fs-5">Imagen</div>
+                <div class="col-5 content-center fs-5">Nombre</div>
+                <div class="col-2 content-center fs-5">Cantidad</div>
+                <div class="col-2 content-center fs-5">Precio</div>
+            </div>
+            <div class="flex-column d-flex align-items-center w-100 my-4">
+                @* For each to call each productCard containing a product *@
+                @foreach (var shopLine in _products)
+                {
+                    <ProductCard shopLine="@shopLine"
+                                 OnDeleteProduct="DeleteProduct"
+                                 IncrementQuantity="UpdateQuantity"
+                                 DecrementQuantity="UpdateQuantity">
+                    </ProductCard>
+                }
+
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <Pagination pagingData="pagingData" Spread="2" SelectedPage="SelectedPage" />
+                </div>
+            </div>
+        </div>
+        <form method="post" id="payment-information"
+              class="w-25 height-650 bg-white d-flex flex-column align-items-center justify-content-between py-5 sticky">
+            <p class="fs-2 mb-4 text-center">Información de la Compra</p>
+
+            @* Shows the payment method and the future functionality to change it *@
+            <div class="d-flex flex-column align-items-center">
+                <p class="fs-3">Metodo de pago</p>
+                <select @onchange="saveChosenMethod" class="form-select" aria-label="Default select example">
+                    <option selected>Seleccione Metodo de Pago</option>
+                  @if(_entrepreneurCards != null){  
+                    @foreach (var card in _entrepreneurCards) 
+                    {  <p class="fs-3">Metodo de pago</p>
+                        
+                        <option value=@card.Name_Payment_Method>@card.Name_Payment_Method</option>
+                    }
+                   }
+                   @if(_entrepreneurSinpeIbans != null){  
+                    @foreach (var sinpe_iban in _entrepreneurSinpeIbans)
+                    {  <p class="fs-3">Metodo de pago</p>
+                       ;
+                        <option value=@sinpe_iban.Name_Payment_Method>@sinpe_iban.Name_Payment_Method</option>
+                    }
+                   }
+                   @if(_entrepreneurSinpeMovils != null){  
+                    @foreach (var sinpe_movil in _entrepreneurSinpeMovils)
+                    {  <p class="fs-3">Metodo de pago</p>
+                   
+                        <option value=@sinpe_movil.Name_Payment_Method>@sinpe_movil.Name_Payment_Method</option>
+                    }
+                   }
+                </select>
+            </div>
+
+            @* Sets the special requirements field *@
+            <div class="d-flex flex-column align-items-center my-4 w-90">
+                <p class="fs-6 mb-3">Requerimientos especiales (Máximo 500 caracteres)</p>
+                <textarea @bind="requirements" class="border-blue w-100" id="requirementsField" maxlength="500" rows="4"></textarea>
+            </div>
+
+            @* Sets the delivery address field *@
+            <div class="d-flex flex-column align-items-center my-4 w-90">
+                <p class="fs-6 mb-3">Direccion de entrega (Máximo 300 caracteres)</p>
+                <textarea @bind="deliveryAddress" class="border-blue w-100" id="deliveryAddressField" maxlength="300" rows="3"></textarea>
+            </div>
+
+            @* Field to set the requested order date *@
+            <div class="dateInfo d-flex justify-content-between align-items-center w-90 mb-5 fs-6">
+                <p>Fecha de entrega</p>
+                <input class="p-2 fs-4" @bind="date" id="orderDate" type="date" max="2022-12-31" min="2021-5-23">
+            </div>
+
+            <div class="d-flex justify-content-between w-90 fs-5">
+
+                <p>Total</p>
+
+                <p>
+                    <span> ₡ </span>
+                    @totalAmount
+                </p>
+
+            </div>
+
+            @*
+            This block prevents the creation of an order with an invalid delivey date
+            , like a date that has already passed.
+            *@
+            @if (date <= currentDate || date == null)
+            {
+                invalidDate = true;
+                <button type="button" class="border-none bg-orange color-white w-90 py-3 fs-3 isDisabled btn" data-toggle="tooltip"
+                        data-placement="bottom" title="La fecha seleccionada no es válida.">
+                    Enviar pedido
+                </button>
+            }
+            else
+            {
+                invalidDate = false;
+                <button type="button" class="border-none bg-orange color-white w-90 py-3 icon-m" data-bs-toggle="modal" data-bs-target="#shopping_cart_summary">Enviar pedido</button>
+            }
+        </form>
+    </div>
+
+    <!-- Show the summary of the shopping cart -->
+    <div class="modal fade" id="shopping_cart_summary" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <p class="fs-2 modal-title" id="shopping_cart_summary_label">Resumen del pedido</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="row modal-body">
+                    <div class="row fw-bold mb-3">
+                        <div class="col-6 fs-6 d-flex flex-column align-items-center">Productos solicitados</div>
+                        <div class="col-2 fs-6 d-flex flex-column align-items-center">Cantidad</div>
+                        <div class="col-4 fs-6 d-flex flex-column align-items-center">Precio</div>
+                    </div>
+                    @{
+                        int j = 0;
+                    }
+                    @foreach (var product in shopping.ShopLines)
+                    {
+                        int productNumber = j;
+                        <div class="row mb-2">
+                            <div class="col-6 d-flex flex-column align-items-center">
+                                @*
+                        This line displays the product name,
+                        retrieved from the Product_Name method
+                        defined later in this file.
+                                *@
+                                <p class="fs-6">@product.product.ProductName</p>
+                            </div>
+
+                            <div class="col-2 d-flex flex-column align-items-center">
+                                <p class="fs-6">
+                                    @* This line displays the quantity of each product in the cart*@
+                                    @product.Quantity
+                                </p>
+                            </div>
+
+                            <div class="col-4 d-flex flex-column align-items-center">
+                                <p class="fs-6 text-center">
+                                    <span> ₡ </span>
+                                    @* Gets the total price of the quantity of each product in the cart *@
+                                    @(product.product.currentPrice * @product.Quantity)
+                                </p>
+                            </div>
+                        </div>
+                        j++;
+                    }
+                    <p class="w-90 fs-6 text-end">
+                        Monto total:
+                        <span> ₡ </span>
+                        @totalAmount
+                    </p>
+                </div>
+
+                <p class="fs-6 text-center fw-bold">Requerimientos:</p>
+                @* Requirements field *@
+                <div class="w-90 border-grey mb-5 m-auto overflow-auto height-150">
+                    <p class="fs-6 text-start text-break">@requirements</p>
+                </div>
+
+                @* Delivery address *@
+                <div class="w-90 mb-5 m-auto overflow-auto">
+                    <p class="fs-6 text-break">Direccion de entrega: @deliveryAddress</p>
+                </div>
+
+                @* Requested date *@
+                <div class="w-90 mb-5 m-auto">
+                    <p class="fs-6">Fecha solicitada: @date?.ToString("MM/dd/yyyy")</p>
+                </div>
+
+                @* Shows payment method *@
+                <div class="w-90 mb-5 m-auto">
+                    <p class="fs-6">Metodo de pago elegido: XXXXXXX</p>
+                </div>
+
+                @* Implements the modal buttons and calls their functionality *@
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="() => sendRequest()"
+                            data-bs-target="#exampleModalToggle2" data-bs-toggle="modal" data-bs-dismiss="modal">
+                        Enviar pedido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade p-5" id="exampleModalToggle2" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body fs-5">
+                    Su pedido se ha enviado
+                </div>
+                @* When the request is sent, the user is taken back to the home page. *@
+                <button class="btn btn-primary w-50 m-auto mb-3" data-bs-target="#exampleModalToggle"
+                        data-bs-toggle="modal" data-bs-dismiss="modal"
+                        @onclick="() => backToHome()">
+                    Volver al inicio
+                </button>
+
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+
+    // Variable to catch date.
+    DateTime? date = null;
+
+    // Variable to store today's date.
+    DateTime currentDate = DateTime.Now.AddDays(-1);
+
+    // Boolean to know if entered date is invalid.
+    private bool invalidDate = true;
+
+    // String with the logged in user email.
+    private string userEmail;
+        
+    // String with the entrepreneur's email.
+    private string entrepreneurEmail;
+    
+    // Loading page variable.
+    private bool _isLoading = true;
+
+    // ShoppingCart object representing the user's shopping cart.
+    private ShoppingCart shopping;
+
+    // IEnumerable with ShopLine objects representing products.
+    private IEnumerable<ShopLine> _products;
+
+    //A list to store the ids of the entrepreneurs accepted methods
+    //To be used to retrieve Card and SINPE methods.
+    public List<HasPaymentInfo>? _paymentMethodsIds;
+
+    //Cards registered by entrepreneur
+    public List<CardPaymentInfo>? _entrepreneurCards;
+
+    //SinpeIban information owned by entreprenur
+    public List<SinpeIbanPaymentInfo>? _entrepreneurSinpeIbans; 
+
+    // SinpeMovil information owned by entrepreneur
+    public List<SinpeMovilPaymentInfo>? _entrepreneurSinpeMovils; 
+
+    // Shopping page parameters for the pagination.
+    private ShopParameters shopParameters = new ShopParameters();
+
+    // PagingData object to represent the data to be displayed on pagination.
+    public PagingData pagingData { get; set; } = new PagingData();
+
+    // Integer variable to store the total price that the user has to pay for their order.
+    private int totalAmount;
+
+    // String that saves the customer's chosen payment method
+    private string selectedPaymentMethod = "";
+
+    // String variable to store the special requirements of a order.
+    private string requirements = "";
+
+    // String variable to store the delivery address of a order.
+    private string deliveryAddress = "";
+
+    // Array of integers to know how many of each product is currently in the shopping cart.
+    private int[] quantityPerProduct;
+
+    /*
+      Summary: Method to increase the count of a certain product in the shopping cart. To be invoked in the HTML section of this file.
+      Parameters: Method recieves ShopLine object
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void UpdateQuantity(ShopLine shopLine)
+    {
+        updateTotalAmount();
+        StateHasChanged();
+    }
+
+    /*
+      Summary: This method updates the total price amount of the shopping cart page.
+      Parameters: Method does not recieve parameters.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void updateTotalAmount()
+    {
+        totalAmount = 0;
+        foreach (var item in shopping.ShopLines)
+        {
+            totalAmount += item.product.currentPrice * item.Quantity;
+        }
+    }
+
+    /*
+      Summary: This method deletes a product from a given shopLine
+      Parameters: This method recieves an Object ShopLine
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected async Task DeleteProduct(ShopLine shopLine)
+    {
+        await ShoppingCartService.DeleteLineFromShoppingCart(this.shopping, shopLine);
+        shopping = await ShoppingCartService.GetByIdAsync(userEmail);
+        _products = await ShoppingCartService.GetProducts(shopParameters, userEmail);
+        updateTotalAmount();
+        if (shopping.ShopLines.Count() == 0)
+        {
+            backToHome();
+        }
+        StateHasChanged();
+    }
+
+    public async Task saveChosenMethod(ChangeEventArgs e) {
+       selectedPaymentMethod = e.Value.ToString();
+    }
+
+    /*
+      Summary: Overridden method from Blazor that is invoked when the page is loaded.
+      Method fetchs the userEmail and the shopping cart from given userEmail. It also handles the pagination.
+      Parameters: This method recieves an Object ShopLine
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected override async Task OnInitializedAsync() {
+        userEmail = await sessionStorage.GetItemAsync<string>("Email");
+        shopping = await ShoppingCartService.GetByIdAsync(userEmail);
+        var pagingResponse = await ShoppingCartService.GetProducts(shopParameters, userEmail);
+        _products = pagingResponse;
+        entrepreneurEmail = _products.ElementAt(0).EntrepreneurEmail; //for testing purposes "azviquez93@gmail.com";
+        pagingData = pagingResponse.pagingData;
+        await GetAcceptedMethods();
+        _isLoading = false;
+        updateTotalAmount();
+        quantityPerProduct = new int[shopping.ShopLines.Count()];
+    }
+    /*
+      Summary: Async method used to retrieve the accepted payment methods from an entrepreneur.
+      It retrieves each type of accepted payment method from a list of payment methods ids.
+      Parameters: None
+      Return: Asyncronous task
+      Exceptions: There aren't known exceptions
+    */
+    private async Task GetAcceptedMethods() {
+        _paymentMethodsIds = await HasPaymentInfoService.getHasPaymentInfoByEmail(entrepreneurEmail);
+        _entrepreneurCards = await CardPaymentInfoService.GetCardPaymentInfosByPaymentInfoIDAsync(_paymentMethodsIds);
+        _entrepreneurSinpeIbans = await SinpeIbanInfoPaymentService.GetSinpeIbanPaymentInfosByPaymentInfoIDAsync(_paymentMethodsIds);
+        _entrepreneurSinpeMovils = await SinpeMovilInfoPaymentService.GetSinpeMovilPaymentInfosByPaymentInfoIDAsync(_paymentMethodsIds);  
+    }
+
+    /*
+      Summary: Takes a given page and sets it to the parameter for the pagination.
+      Parameters: This method recieves an int representing a page.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task SelectedPage(int page)
+    {
+        shopParameters.PageNumber = page;
+        await GetProducts();
+    }
+
+    /*
+      Summary: This methods fetchs the products that are gonna be shown in the pagination.
+      Parameters: This method does not recieve anything.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task GetProducts()
+    {
+        var pagingResponse = await ShoppingCartService.GetProducts(shopParameters, userEmail);
+        _products = pagingResponse;
+        pagingData = pagingResponse.pagingData;
+    }
+
+    /*
+      Summary: This methods sends a
+      Parameters: This method does not recieve anything.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task sendRequest()
+    {
+        try
+        {
+            await ShoppingCartService.sendRequest(shopping, requirements, deliveryAddress, 
+                                                (DateTime)date, selectedPaymentMethod);
+        }
+        catch (Exception ex)
+        {
+            Console.Write("Don't change the HTML");
+            StateHasChanged();
+        }
+        StateHasChanged();
+    }
+
+    /*
+      Summary: This methods takes the user back to the home page.
+      Parameters: This method does not recieve anything.
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void backToHome()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    }

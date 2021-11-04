@@ -1,0 +1,346 @@
+﻿@using EmprendeUCR.Application.Chats;
+@using EmprendeUCR.Domain.Chats.Entities;
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Lists
+@using System.Collections.ObjectModel
+
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IChatService ChatService
+@inject IMessageService MessageService
+@inject IUtilizesChatService UtilizesChatService
+@inherits ChatPageBase
+
+
+<div id="container">
+    <div id="sample">
+        <SfListView ID="list"
+                    DataSource="@DataSource"
+                    ShowHeader="true"
+                    Height="420px"
+                    HeaderTitle="Chat">
+            <ListViewFieldSettings TValue="ListDataModel" Id="Id" Text="Text"></ListViewFieldSettings>
+            <ListViewTemplates TValue="ListDataModel">
+                <Template>
+                    @{
+                        ListDataModel currentData = context as ListDataModel;
+
+                        <div class="flex item__container">
+                            <div class="flex flex__1 vertical__center flex__center @(currentData.Chat == "sender" ? "flex__order__2" : "")">
+                                @if (currentData.Avatar != "")
+                                {
+                                    <span class="e-avatar e-avatar-circle">@currentData.Avatar</span>
+                                }
+                                else
+                                {
+                                    <span class="@currentData.Pic e-avatar e-avatar-circle"></span>
+                                }
+                            </div>
+                            <div class="flex content__container flex__8 vertical padding @(currentData.Chat == "sender" ? "right__align" : "left__align")">
+                                <div class="bold">@currentData.Name</div>
+                                <div class="small__font">@currentData.MensajeChat</div>
+                            </div>
+                        </div>
+                    }
+                </Template>
+            </ListViewTemplates>
+        </SfListView>
+        <div class="flex">
+            <div class="flex__8 padding">
+                <SfTextBox Placeholder="Type your message" @bind-Value="@chatMessage" @onkeyup="@OnSend"></SfTextBox>
+            </div>
+            <div class="flex__1">
+                <SfButton class="e-btn" @onclick="@OnSend">Send</SfButton>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    SfListView<ListDataModel> list;
+    string chatMessage = "";
+
+
+    //HACER UN METODO QUE OBTENGA EL OTRO USUAIO DEL CHAT Y EL USUARIO LOGINEADO y EL CHAT ABIERTO
+    string loginUserEmail = "";
+    int repeticion = 0;
+    private int private_new_chat_id;
+    [Parameter]
+    public string otherUserOfChat { get; set; }
+    [Parameter]
+    public int new_chat_id
+    {
+        get
+        {
+            return private_new_chat_id;
+        }
+        set
+        {
+            private_new_chat_id = value;
+            if (private_new_chat_id != 0)
+            {
+                //GetReceiverEmail(private_new_chat_id);
+                Console.WriteLine("el new_chat_id en set es " + new_chat_id);
+                //OnInitializedAsync();
+                //getMessagesFromChat(private_new_chat_id);
+                if (repeticion == 1)
+                {
+                    getMessagesFromChat(private_new_chat_id);
+                }
+                else {
+                    repeticion = 1;
+                }
+            }
+        }
+    }
+    protected IEnumerable<Chat> _chatList; //Base
+    protected IEnumerable<Message> _messageList; //Base
+    protected IEnumerable<UtilizesChat> _utilizesChatList; //Base
+    ObservableCollection<ListDataModel> DataSource = new ObservableCollection<ListDataModel>(); //BASE
+
+    protected override async Task OnInitializedAsync()
+    {
+        loginUserEmail = await sessionStorage.GetItemAsync<string>("Email");
+        _chatList = await ChatService.GetChatsAsync();
+        _messageList = await MessageService.GetMessagesAsync();
+        _utilizesChatList = await UtilizesChatService.GetUtilizesChatsAsync();
+        getMessagesFromChat(private_new_chat_id);
+    }
+
+    //Obtener y mostrar todos los mensajes del chat en la pantalla, llama a showMessage()
+    protected async Task getMessagesFromChat(int chatID) //Poner string loginUserEmail como parametro extra
+    {
+        DataSource.Clear();
+
+        IEnumerable<Message> chatMessages = _messageList.Where(m => m.Chat_ID.Equals(chatID)).ToList();
+
+        foreach (Message message in chatMessages)
+        {
+            ShowMessage(message);
+        }
+    }
+
+    protected async Task ShowMessage(Message message)
+    {
+        DataSource.Add(new ListDataModel
+        {
+            Name = message.Writer_User_Email,
+            MensajeChat = message.Content,
+            Id = new Random().Next(300, 900).ToString(), //Revisar para qué sirve
+            Avatar = "", //le quité la A
+            Pic = "",
+            Chat = loginUserEmail == message.Writer_User_Email ? "receiver" : "sender"
+        });
+    }
+
+    //Agregar mensajes a la base de datos
+    protected async Task AddMessageToDB(Message message)
+    {
+        await MessageService.AddMessageAsync(message);
+        _messageList = await MessageService.GetMessagesAsync();
+
+    }
+
+    /* EJEMPLO DE COMO SE CONTRUYE UN MENSAJE
+    ObservableCollection<ListDataModel> DataSource = new ObservableCollection<ListDataModel>() {
+        new ListDataModel {
+            Name = "Amenda ",
+            MensajeChat = "A knid of Emergency broadcast App",
+            Id = "5",
+            Avatar = "A",
+            Pic = "",
+            Chat = "receiver"
+        },
+    };
+    */
+
+
+    protected async Task OnSend()
+    {
+        string messageContent = chatMessage;
+        chatMessage = "";
+        await SendMessage(messageContent);
+        StateHasChanged();
+    }
+
+    protected async Task SendMessage(string messageContent)
+    {
+        if (messageContent.Length() > 0)
+        {
+            Message message = new Message(new_chat_id, loginUserEmail, otherUserOfChat, messageContent);
+            await AddMessageToDB(message);
+            await ShowMessage(message);
+        }
+    }
+
+    protected void GetReceiverEmail(int chatID)
+    {
+        IEnumerable<UtilizesChat> usersOfThisChat = _utilizesChatList.Where(u => u.Chat_ID.Equals(chatID));
+        if (usersOfThisChat != null)
+        {
+            usersOfThisChat = usersOfThisChat.ToList();
+            foreach (UtilizesChat utilizesChat in usersOfThisChat)
+            {
+                if (utilizesChat.User_Email != loginUserEmail)
+                {
+                    otherUserOfChat = utilizesChat.User_Email;
+                }
+            }
+        }
+    }
+
+    public class ListDataModel
+    {
+        public string Id
+        {
+            get;
+            set;
+        }
+        public string Chat
+        {
+            get;
+            set;
+        }
+        public string Pic
+        {
+            get;
+            set;
+        }
+        public string Avatar
+        {
+            get;
+            set;
+        }
+        public string Name
+        {
+            get;
+            set;
+        }
+        public string MensajeChat
+        {
+            get;
+            set;
+        }
+    }
+}
+
+<style>
+    #list {
+        box-shadow: 0 1px 4px #ddd;
+        border-bottom: 1px solid #ddd;
+    }
+
+    #sample {
+        height: 220px;
+        margin: 0 auto;
+        display: block;
+        max-width: 350px;
+    }
+
+    #list {
+        margin: 0 auto;
+        border: 1px solid #ccc;
+    }
+
+        #list .e-list-item {
+            height: auto;
+            cursor: pointer;
+            line-height: 22px;
+            padding: 8px;
+        }
+
+        #list.e-listview .e-list-header {
+            background-color: #0278d7;
+            color: white;
+        }
+
+        #list.e-listview .e-list-item.e-focused {
+            color: black;
+            background-color: transparent;
+        }
+
+        #list .e-list-item.e-active {
+            background-color: transparent;
+        }
+
+        #list .e-list-item.e-hover {
+            background-color: transparent;
+        }
+
+    .padding {
+        padding: 4px;
+    }
+
+    .right__align {
+        text-align: right;
+        margin-right: 8px;
+        padding-right: 8px;
+    }
+
+    .left__align {
+        margin-left: 8px;
+        padding-left: 8px;
+    }
+
+    .content__container {
+        background-color: aliceblue;
+    }
+
+    .flex {
+        display: flex;
+    }
+
+    .flex__center {
+        justify-content: center;
+    }
+
+    .vertical__center {
+        align-items: center;
+    }
+
+    .vertical {
+        flex-direction: column;
+    }
+
+    .flex__order__1 {
+        order: 1;
+    }
+
+    .flex__order__2 {
+        order: 2;
+    }
+
+    .flex__1 {
+        flex: 1;
+    }
+
+    .flex__2 {
+        flex: 2;
+    }
+
+    .flex__3 {
+        flex: 3;
+    }
+
+    .flex__5 {
+        flex: 5;
+    }
+
+    .flex__8 {
+        flex: 8;
+    }
+
+    .bold {
+        font-weight: 500;
+    }
+
+    .margin {
+        margin: 10px;
+        width: 350px;
+    }
+
+    .small__font {
+        font-size: 13px;
+        margin: 2px 0;
+    }
+</style>

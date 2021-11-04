@@ -1,0 +1,531 @@
+﻿@page "/AddProduct"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using EmprendeUCR_WebApplication.Data.Services.Keyword
+@using EmprendeUCR_WebApplication.Data.Entities
+@using EmprendeUCR_WebApplication.Data.Entities.Keyword
+@using System.IO
+@using BlazorInputFile
+@using Syncfusion.Blazor.TreeGrid
+@using System.Drawing
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Data
+@using Blazored.FluentValidation
+
+@inject ProductService  productService
+@inject NavigationManager NavigationManager
+@inject Product_ServiceService Product_ServiceService
+@inject CategoryService CategoryService
+@inject Product_PhotosService Product_PhotosService
+@inject KeywordService keyWord
+@inject HasSuppliesService HasSuppliesService
+@inject Has_StatusService Has_StatusService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+<style>
+    .drops {
+        margin-top: 10px;
+        margin-bottom: 10px;
+        margin-left: 10px;
+    }
+</style>
+
+<h2>Agregar producto</h2>
+<hr />
+<body>
+
+    <div class="">
+
+        @*TreeGrid*@
+        <aside class="w-25 float_left gap-3">
+            <div class="form-group">
+                <span>Seleccione una categoria</span>
+                <h2 class="text-center fs-2  bg-blue">Categoria</h2>
+                <SfTreeGrid ID="TreeGrid" @ref="TreeGrid" AllowSorting="true" AllowRowDragAndDrop="true" DataSource="@categories" IdMapping="Id" ParentIdMapping="ParentId" AllowSelection="true" TreeColumnIndex="0">
+                    <TreeGridEvents TValue="Category" RowDeselected="SelectionHandler2" RowSelected="SelectionHandler"></TreeGridEvents>
+                    <TreeGridSortSettings>
+                        <TreeGridSortColumns>
+                            <TreeGridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></TreeGridSortColumn>
+                        </TreeGridSortColumns>
+                    </TreeGridSortSettings>
+                    <TreeGridColumns>
+                        <TreeGridColumn Field="Title" HeaderText="Nombre" Width="100"></TreeGridColumn>
+                        <TreeGridColumn Field="Description" HeaderText="Descripción" Width="160"></TreeGridColumn>
+                    </TreeGridColumns>
+                </SfTreeGrid>
+
+            </div>
+        </aside>
+
+
+        @*Displays the header*@
+        <section class=" w-70 float_right gap-lg-5 ">
+            <div class=" w-70">
+                <div class=" border-1 shadow  bg-silver">
+                    <div class="m-lg-4">
+                        <br />
+                        @*Input for name of the product*@
+                        <EditForm id="@MyID" EditContext="editContext" OnValidSubmit="@onCreateProduct">
+                            <FluentValidationValidator />
+                            <div class="form-group w-70">
+                                <label for="Name" class="control-label">Nombre</label>
+                                <InputText type="@prod.Product_Name" form="Name" class="form-control" @bind-Value="@prod.Product_Name" required />
+                                <ValidationMessage For=@(() => prod.Product_Name) ></ValidationMessage>
+                            </div><br />
+
+
+                            @*Imput for description of the product*@
+                            <div class="form-group w-70">
+                                <label for="Product_Description" class="control-label">Descripción</label>
+                                <textarea rows="3" form="Product_Description" class="form-control" @bind="@prod.Product_Description" />
+                            </div><br />
+                                  <div class="form-group w-30">
+                                      <label class="control-label">Categoria Selecionada:</label>
+                                      @if (selectedCategory != null)
+                                      {
+
+                                          <span>@selectedCategory.Title</span>
+                                      }
+                                      else
+                                      {
+                                          <ValidationMessage For=@(() => prod.Category_ID) />
+                                      }
+
+                                  </div><br />
+                            @*Imput for price of the product*@
+                            <div class="form-group w-30">
+                                <label for="Price" class="control-label">Precio(CRC)</label>
+                                <InputNumber form="Price" class="form-control" @bind-Value="@prod.Price" />
+                                <ValidationMessage For=@(() => prod.Price)></ValidationMessage>
+
+                            </div><br />
+
+                            @*Switch for avalability of the product*@
+                            <div>
+                                <label class="form-check-label" for="flexSwitchCheckDefault">Disponibilidad</label>
+                                <SfSwitch id="flexSwitchCheckDefault" @bind-Checked="isAvailabilityChecked" ValueChange="onChangeAvailability" TChecked="bool"></SfSwitch>
+                            </div>
+
+                        </EditForm>
+                    </div>
+                    <div class="w-70">
+                        <label for="Keyword" class="control-label m-lg-2">Palabras clave</label>
+                        <div class="drops">
+                            <SfComboBox TItem="Keywords" TValue="String" DataSource="_keys" Placeholder="Palabra Clave" Query="@Query" AllowFiltering=true @bind-Value="@key1">
+                                <ComboBoxFieldSettings Text="Title" Value="Title">
+                                </ComboBoxFieldSettings>
+                            </SfComboBox>
+                        </div>
+                        <div class="drops">
+                            <SfComboBox TItem="Keywords" TValue="String" DataSource="_keys" Placeholder="Palabra Clave" Query="@Query" AllowFiltering=true @bind-Value="@key2">
+                                <ComboBoxFieldSettings Text="Title" Value="Title">
+                                </ComboBoxFieldSettings>
+                            </SfComboBox>
+                        </div>
+                        <div class="drops">
+                            <SfComboBox TItem="Keywords" TValue="String" DataSource="_keys" Placeholder="Palabra Clave" Query="@Query" AllowFiltering=true @bind-Value="@key3">
+                                <ComboBoxFieldSettings Text="Title" Value="Title">
+                                </ComboBoxFieldSettings>
+                            </SfComboBox>
+                        </div>
+                        <div class="drops">
+                            <SfComboBox TItem="Keywords" TValue="String" DataSource="_keys" Placeholder="Palabra Clave" Query="@Query" AllowFiltering=true @bind-Value="@key4">
+                                <ComboBoxFieldSettings Text="Title" Value="Title">
+                                </ComboBoxFieldSettings>
+                            </SfComboBox>
+                        </div>
+                        <div class="drops">
+                            <SfComboBox TItem="Keywords" TValue="String" DataSource="_keys" Placeholder="Palabra Clave" Query="@Query" AllowFiltering=true @bind-Value="@key5">
+                                <ComboBoxFieldSettings Text="Title" Value="Title">
+                                </ComboBoxFieldSettings>
+                            </SfComboBox>
+                        </div>
+                    </div>
+                </div>
+                <br />
+
+                <EmprendeUCR_WebApplication.Pages.Product_Service.Product.ProductStatusInput statuses="@statuses" OnStatusesUpdated="StatusesUpdateHandler" />
+                <br />
+                <EmprendeUCR_WebApplication.Pages.Product_Service.Product.SuppliesInput supplies="@supplies" OnSuppliesUpdated="SuppliesUpdateHandler" />
+                <br />
+
+                @*Display the option to the user to upload the photo and assign it to the product (the 6 of them)*@
+                <div class=" ">
+                    <div class="wrapper w-90">
+
+                        @*display photo one*@
+                        <div class="one">
+                            <EditForm Model="@photosOne">
+                                <BlazorInputFile.InputFile id="addPhoto1" class="d-none" OnChange="args => HandleFileSelected(args, photosOne)" accept=".jpg,.png"></BlazorInputFile.InputFile>
+                                <label class="" hidden="@isPhotoLoaded(photosOne)" for="addPhoto1">
+                                    <span class="d-flex align-items-center justify-content-center img-card btn btn-secondary material-icons-outlined">add_photo_alternate</span>
+                                </label>
+                                <img class="img-card" hidden="@(!isPhotoLoaded(photosOne))" src="@Product_PhotosService.convertImageDisplay(photosOne.Photos)" width="350" />
+                                <button @onclick="@(args => deletePhoto(args, photosOne))" hidden="@(!isPhotoLoaded(photosOne))" id="deletePhoto1" type="button" class="btn btn-danger material-icons-outlined ">delete</button>
+
+                            </EditForm>
+                        </div>
+
+                        @*display photo two*@
+                        <div class="two">
+                            <EditForm Model="@photosTwo">
+                                <BlazorInputFile.InputFile id="addPhoto2" class="d-none" OnChange="args => HandleFileSelected(args, photosTwo)" accept=".jpg,.png"></BlazorInputFile.InputFile>
+                                <label hidden="@isPhotoLoaded(photosTwo)" for="addPhoto2">
+                                    <span class="d-flex align-items-center justify-content-center img-card material-icons-outline btn btn-secondary material-icons-outlined">add_photo_alternate</span>
+                                </label>
+                                <img class="img-card" hidden="@(!isPhotoLoaded(photosTwo))" src="@Product_PhotosService.convertImageDisplay(photosTwo.Photos)" width="350" />
+                                <button @onclick="@(args => deletePhoto(args, photosTwo))" hidden="@(isPhotoLoaded(photosTwo) == false)" id="deletePhoto2" type="button" class="btn btn-danger material-icons-outlined ">delete</button>
+                            </EditForm>
+                        </div>
+
+                        @*display photo three*@
+                        <div class="three">
+                            <EditForm Model="@photosThree">
+                                <BlazorInputFile.InputFile id="addPhoto3" class="d-none" OnChange="args => HandleFileSelected(args, photosThree)" accept=".jpg,.png"></BlazorInputFile.InputFile>
+                                <label hidden="@isPhotoLoaded(photosThree)" for="addPhoto3">
+                                    <span class="d-flex align-items-center justify-content-center img-card material-icons-outline btn btn-secondary material-icons-outlined">add_photo_alternate</span>
+                                </label>
+                                <img class="img-card" hidden="@(!isPhotoLoaded(photosThree))" src="@Product_PhotosService.convertImageDisplay(photosThree.Photos)" width="350" />
+                                <button @onclick="@(args => deletePhoto(args, photosThree))" hidden="@(isPhotoLoaded(photosThree) == false)" id="deletePhoto3" type="button" class="btn btn-danger material-icons-outlined ">delete</button>
+
+                            </EditForm>
+                        </div>
+
+                        @*display photo four*@
+                        <div class="four">
+                            <EditForm Model="@photosFour">
+                                <BlazorInputFile.InputFile id="addPhoto4" class="d-none" OnChange="args => HandleFileSelected(args, photosFour)" accept=".jpg,.png"></BlazorInputFile.InputFile>
+                                <label hidden="@isPhotoLoaded(photosFour)" for="addPhoto4">
+                                    <span class="d-flex align-items-center justify-content-center img-card btn btn-secondary material-icons-outlined">add_photo_alternate</span>
+                                </label>
+                                <img class="img-card" hidden="@(!isPhotoLoaded(photosFour))" src="@Product_PhotosService.convertImageDisplay(photosFour.Photos)" width="350" />
+                                <button @onclick="@(args => deletePhoto(args, photosFour))" hidden="@(isPhotoLoaded(photosFour) == false)" id="deletePhoto4" type="button" class="btn btn-danger material-icons-outlined ">delete</button>
+
+                            </EditForm>
+                        </div>
+
+                        @*display photo five*@
+                        <div class="five">
+                            <EditForm Model="@photosFive">
+                                <BlazorInputFile.InputFile id="addPhoto5" class="d-none" OnChange="args => HandleFileSelected(args, photosFive)" accept=".jpg,.png"></BlazorInputFile.InputFile>
+                                <label hidden="@isPhotoLoaded(photosFive)" for="addPhoto5">
+                                    <span class="d-flex align-items-center justify-content-center img-card material-icons-outline btn btn-secondary material-icons-outlined">add_photo_alternate</span>
+                                </label>
+                                <img class="img-card" hidden="@(!isPhotoLoaded(photosFive))" src="@Product_PhotosService.convertImageDisplay(photosFive.Photos)" width="350" />
+                                <button @onclick="@(args => deletePhoto(args, photosFive))" hidden="@(isPhotoLoaded(photosFive) == false)" id="deletePhoto5" type="button" class="btn btn-danger material-icons-outlined ">delete</button>
+
+                            </EditForm>
+                        </div>
+
+                        @*display photo six*@
+                        <div class="six">
+                            <EditForm Model="@photosSix">
+                                <BlazorInputFile.InputFile id="addPhoto6" class="d-none" OnChange="args => HandleFileSelected(args, photosSix)" accept=".jpg,.png"></BlazorInputFile.InputFile>
+                                <label hidden="@isPhotoLoaded(photosSix)" for="addPhoto6">
+                                    <span class="d-flex align-items-center justify-content-center  img-card material-icons-outline btn btn-secondary material-icons-outlined">add_photo_alternate</span>
+                                </label>
+                                <img class="img-card" hidden="@(!isPhotoLoaded(photosSix))" src="@Product_PhotosService.convertImageDisplay(photosSix.Photos)" />
+                                <button @onclick="@(args => deletePhoto(args, photosSix))" hidden="@(isPhotoLoaded(photosSix) == false)" id="deletePhoto6" type="button" class="btn btn-danger material-icons-outlined ">delete</button>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div><br />
+
+                @*Shows and error if there are error in the input of a product*@
+                <p style="color:red;">@errorMessage</p>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="d-flex p-2">
+                            @*Button "Regresar"*@
+                            <input type="button" class="btn btn-primary m-lg-2" @onclick="@back" value="Regresar" />
+
+                            @*Button "Limpiar"*@
+                            <input type="button" class="btn btn-primary m-lg-2" @onclick="@Clean" value="Limpiar" />
+
+                            <input type="submit" form="@MyID" class="btn btn-primary m-lg-2" value="Guardar" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+
+</body>
+
+@code {
+    // The product service to add
+    EmprendeUCR_WebApplication.Data.Entities.Product prod = new EmprendeUCR_WebApplication.Data.Entities.Product();
+    EmprendeUCR_WebApplication.Data.Entities.Product_Service prodServ = new EmprendeUCR_WebApplication.Data.Entities.Product_Service();
+    String key1 = "";
+    String key2 = "";
+    String key3 = "";
+    String key4 = "";
+    String key5 = "";
+
+    private string MyID = "myid";
+    Image img = Image.FromFile("./wwwroot/images/image.jpg");
+
+    //List of categories
+    IList<Category> categories;
+
+    public class myUser
+    {
+        public int myInt { get; set; }
+    }
+
+    //Loading
+    private IList<Keywords> _keys;
+    private Query Query = new Query();
+
+    private bool _isLoading = true;
+
+    // availability
+    bool isAvailabilityChecked = true;
+
+    // stores error messages
+    private EditContext editContext;
+    private ValidationMessageStore messageStore;
+
+    // The photos that will be assign to the Product
+    Product_Photos photosOne = new Product_Photos();
+    Product_Photos photosTwo = new Product_Photos();
+    Product_Photos photosThree = new Product_Photos();
+    Product_Photos photosFour = new Product_Photos();
+    Product_Photos photosFive = new Product_Photos();
+    Product_Photos photosSix = new Product_Photos();
+
+    //TreeGrid of categories
+    SfTreeGrid<Category> TreeGrid { get; set; }
+
+    //Selected category on the treeGrid
+    private Category selectedCategory;
+
+    //Error message if there are errors in the input
+    string errorMessage = "";
+
+    //boolean to control if it's possible save
+    bool ready = false;
+    bool categorieSelected = false;
+
+    // Lists
+    List<Personalized_Status> statuses = new List<Personalized_Status>();
+    List<HasSupplies> supplies = new List<HasSupplies>();
+
+    // Receives file to insert and product to insert it to.
+    public async Task HandleFileSelected(IFileListEntry[] files, Product_Photos photos)
+    {
+        var file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+            photos.Photos = ms.ToArray();
+        }
+    }
+
+    public void insertDefaultPhoto(System.Drawing.Image imageIn, Product_Photos photos)
+    {
+        using (var ms = new MemoryStream())
+        {
+            imageIn.Save(ms, imageIn.RawFormat);
+            photosOne.Photos = ms.ToArray();
+        }
+    }
+
+    // Gets called when page first loads.
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new(prod);
+        messageStore = new(editContext);
+
+        prodServ.Entrepreneur_Email = await sessionStorage.GetItemAsync<string>("Email");
+
+        categories = await CategoryService.GetAsync();
+        _keys = await keyWord.GetAsync();
+        _isLoading = false;
+        prodServ.Availability = 1;
+    }
+
+    // Gets called when entrepreneur saves a new product
+    protected Task createProduct()
+    {
+        if (String.IsNullOrEmpty(prod.Entrepreneur_Email))
+        {
+            return Task.CompletedTask;
+        }
+        else
+        {
+            return productService.InsertProductAsync(prod);
+        }
+    }
+
+    //Return if the photo is loaded or not as a boolean
+    protected bool isPhotoLoaded(Product_Photos photo)
+    {
+        return photo.Photos != null;
+    }
+
+    //Deletes one photo
+    protected void deletePhoto(MouseEventArgs args, Product_Photos photo)
+    {
+        photo.Photos = null;
+    }
+
+    // Creates parent Product_Service entity
+    protected async Task<int>
+        createProduct_Service()
+    {
+        if (String.IsNullOrEmpty(prodServ.Entrepreneur_Email))
+        {
+            await Task.CompletedTask;
+            return 0;
+        }
+        else
+        {
+            int id = await Product_ServiceService.InsertProductServiceAsync(prodServ);
+            return id;
+        }
+    }
+
+    // Inits all values in a photo object
+    protected void preparePhoto(Product_Photos photo, int idToInsert)
+    {
+        if (photo.Photos != null)
+        {
+            photo.Code_ID = idToInsert;
+            photo.Entrepreneur_Email = prodServ.Entrepreneur_Email;
+            photo.Category_ID = selectedCategory.Id;
+            Product_PhotosService.savePhotoToDb(photo);
+        }
+    }
+
+    //Creates a product
+    protected async void onCreateProduct()
+    {
+
+        prodServ.Availability = prodServ.Availability;
+        prodServ.Category_ID = selectedCategory.Id;
+
+        prod.Category_ID = selectedCategory.Id;
+        prod.Entrepreneur_Email = prodServ.Entrepreneur_Email;
+
+        int idToInsert = await createProduct_Service();
+        prod.Code_ID = idToInsert;
+        await createProduct();
+        await HasSuppliesService.InsertListOfHasSupplie(supplies, idToInsert, selectedCategory.Id, prodServ.Entrepreneur_Email);
+        var has_statuses = new List<Has_Status>();
+        for (int i = 0; i < statuses.Count(); i++)
+        {
+            var has_status = new Has_Status();
+            has_status.Order = i;
+            has_status.Code_ID = idToInsert;
+            has_status.Entrepreneur_Email = prodServ.Entrepreneur_Email;
+            has_status.Category_ID = prodServ.Category_ID;
+            has_status.Name = statuses.ElementAt(i).Name;
+            has_statuses.Add(has_status);
+        }
+        await Has_StatusService.InsertListOfHas_Status(has_statuses);
+        /// Save photos on data base
+        if (photosOne.Photos == null && photosTwo.Photos == null && photosThree.Photos == null
+        && photosFour.Photos == null && photosFive.Photos == null && photosSix.Photos == null)
+        {
+            insertDefaultPhoto(img, photosOne);
+        }
+        preparePhoto(photosOne, idToInsert);
+        preparePhoto(photosTwo, idToInsert);
+        preparePhoto(photosThree, idToInsert);
+        preparePhoto(photosFour, idToInsert);
+        preparePhoto(photosFive, idToInsert);
+        preparePhoto(photosSix, idToInsert);
+        /// End of save photos on database
+
+        await keyWord.InsertKeyword(key1);
+        await keyWord.InsertKeyword(key2);
+        await keyWord.InsertKeyword(key3);
+        await keyWord.InsertKeyword(key4);
+        await keyWord.InsertKeyword(key5);
+
+        keyWord.addToList(key1);
+        keyWord.addToList(key2);
+        keyWord.addToList(key3);
+        keyWord.addToList(key4);
+        keyWord.addToList(key5);
+
+        await keyWord.addKeyWordToProduct(idToInsert,prod.Entrepreneur_Email,prod.Category_ID);
+
+
+        NavigationManager.NavigateTo("ListProducts");
+    }
+
+    //Button to cancel and return to List of Products
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("ListProducts");
+    }
+
+    //Clears all in the input
+    void Clean()
+    {
+        prod.Product_Name = null;
+        prod.Price = 0;
+        prod.Product_Description = null;
+        photosOne.Photos = null;
+        photosTwo.Photos = null;
+        photosThree.Photos = null;
+        photosFour.Photos = null;
+        photosFive.Photos = null;
+        photosSix.Photos = null;
+    }
+
+    //Return to the List of Products
+    void back()
+    {
+        NavigationManager.NavigateTo("ListProducts");
+    }
+
+    //SelectionHandler row selected
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Category> args)
+    {
+        var selectedCategories = await this.TreeGrid.GetSelectedRecords();
+        if (selectedCategories.Count() > 0)
+        {
+            selectedCategory = args.Data;
+            prod.Category_ID = selectedCategory.Id;
+        }
+        categorieSelected = true;
+        messageStore.Clear();
+    }
+
+    //SelectionHandler2 row deselected
+    public async Task SelectionHandler2(Syncfusion.Blazor.Grids.RowDeselectEventArgs<Category>
+        args)
+    {
+        selectedCategory = null;
+        prod.Category_ID = -1;
+        categorieSelected = false;
+        // Custom validation logic
+        if (prod.Category_ID < 1)
+        {
+            messageStore.Add(() => prod.Category_ID, "Debe seleccionar una categoria");
+        }
+    }
+
+
+    private void onChangeAvailability(Syncfusion.Blazor.Buttons.ChangeEventArgs<bool> args)
+    {
+        prodServ.Availability = isAvailabilityChecked ? (byte)1 : (byte)0;
+    }
+
+    void StatusesUpdateHandler(List<Personalized_Status> newList)
+    {
+        statuses = newList;
+    }
+
+    void SuppliesUpdateHandler(List<HasSupplies> newList)
+    {
+        supplies = newList;
+    }
+}

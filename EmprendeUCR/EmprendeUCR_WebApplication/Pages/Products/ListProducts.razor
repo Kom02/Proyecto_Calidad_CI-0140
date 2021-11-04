@@ -1,0 +1,232 @@
+﻿@page "/ListProducts"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using EmprendeUCR_WebApplication.Data.Entities
+@inject EntrepreneurService EntrepreneurService
+@inject CategoryService CategoryService
+@inject ProductService ProductService
+@using Syncfusion.Blazor.TreeGrid;
+@inject NavigationManager NavManager
+@inject Product_ServiceService Product_ServiceService
+@inject Product_PhotosService Product_PhotosService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <head>
+        <link rel="stylesheet" href="~/css/EmprendeUCR-template.css" />
+    </head>
+
+    <body>
+        <header>
+            <div class="icon-m display-2"> Mis Productos</div>
+            <div class="flex-buscar">
+
+                <input @bind-value="inputValue" @onkeyup="@loadProductsByTerms" class="form-control mr-sm-2 w-25 mb-2" type="search" placeholder="Buscar productos" aria-label="Search" />
+                
+            </div>
+        </header>
+
+        <section class="w-70  float_right ">
+
+            <div class="layout wrap gap-4 w-90">
+                @if (_products?.Count > 0)
+                {
+                    @foreach (var prod in _products)
+                    {
+                        var prodServ = _productsServices.First(p => p.Code_ID == prod.Code_ID);
+                        var prodPhoto = photosDisplay.FirstOrDefault(p => p.Code_ID == prod.Code_ID);
+
+                        <div class="item data border-1 border-blue content-center" @onclick="() => LinktoPage(prod.Code_ID.ToString())">
+                            <div class="content-center ">
+                                @if (prodPhoto != null)
+                                {
+                                    <img src="@Product_PhotosService.convertImageDisplay(prodPhoto.Photos)" width="200" class=" img-card mt-2" />
+                                }
+                            </div>
+                            <div class="item m-lg-2 ">
+                                <div class="item_name">@prod.Product_Name</div>
+                                <div class="item_description">@prod.Product_Description</div>
+                                <div class="item_price">₡@prod.Price</div>
+                                <div class="item_Category">@CategoryService.getCategory(prod.Category_ID).Title </div>
+                            </div>
+                        </div>
+                    }
+
+
+
+                }
+                else
+                {
+                  
+                 <h2 class="text-center m-lg-2" style="font-size: 2em">No hay productos</h2>
+                
+                }
+            </div>
+        </section>
+
+        <aside class="w-25 float_left mb-0">
+            <div class=" border-blue  shadow" @onchange="loadCategories">
+                <h2 class="text-center fs-2  bg-blue">Categorias</h2>
+                @if (_my_categories?.Count > 0)
+                {   //jala la llave del papa no se trae los hijos
+                    <SfTreeGrid ID="TreeGrid" @ref="TreeGrid" AllowSorting="true" AllowRowDragAndDrop="true" DataSource="@_my_categories" IdMapping="Id" ParentIdMapping="ParentId" AllowSelection="true" TreeColumnIndex="0">
+                        <TreeGridEvents TValue="Category" RowDropped="Rowdrop" RowDeselected="SelectionHandler2" RowSelected="SelectionHandler"></TreeGridEvents>
+                        <TreeGridSortSettings>
+                            <TreeGridSortColumns>
+                                <TreeGridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></TreeGridSortColumn>
+                            </TreeGridSortColumns>
+                        </TreeGridSortSettings>
+                        <TreeGridColumns>
+                            <TreeGridColumn Field="Title" HeaderText="Nombre" Width="100"></TreeGridColumn>
+                            <TreeGridColumn Field="Description" HeaderText="Descripción" Width="160"></TreeGridColumn>
+                        </TreeGridColumns>
+                    </SfTreeGrid>
+                }
+            </div>
+
+            <NavLink class="nav-link" href="AddProduct">
+                <button class="btn btn-primary" aria-hidden="true">Agregar nuevo producto</button>
+            </NavLink>
+
+        </aside>
+    </body>
+}
+
+@code {
+    private bool _isLoading = true;
+    private IList<EmprendeUCR_WebApplication.Data.Entities.Product> _products;
+    private IList<EmprendeUCR_WebApplication.Data.Entities.Product> _finalproducts;
+    private IList<EmprendeUCR_WebApplication.Data.Entities.Product_Service> _productsServices;
+    private IList<EmprendeUCR_WebApplication.Data.Entities.Category> _categories;
+    private IList<EmprendeUCR_WebApplication.Data.Entities.Category> _my_categories = new List<Category>();
+    IList<Product_Photos> photosDisplay;
+    SfTreeGrid<Category> TreeGrid { get; set; }
+    private Category selectedCategory;
+    string selectedEmail;
+    bool firstClick = true;
+    private string inputValue;
+
+    public async Task loadAllProducts(string email)
+    {
+        _my_categories.Clear();
+        selectedEmail = email;
+        await loadProducts(email);
+        await loadProductsServices(email);
+        await loadCategories();
+    }
+
+    public async Task loadCategories()
+    {
+        _my_categories.Clear();
+        foreach (var prod in _products)
+        {
+            Category cat = CategoryService.getCategory(prod.Category_ID);
+
+            Category iterator = CategoryService.getCategory(prod.Category_ID);
+
+            while (iterator.ParentId != null)
+            {
+
+                Category parentcat = CategoryService.getCategory((int)iterator.ParentId);
+
+                if (!_my_categories.Contains(parentcat))
+                {
+                    _my_categories.Add(parentcat);
+                }
+
+                iterator = parentcat;
+            }
+
+            if (!_my_categories.Contains(cat))
+            {
+                _my_categories.Add(cat);
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        selectedEmail = await sessionStorage.GetItemAsync<string>("Email");
+        _categories = await CategoryService.GetAsync();
+        photosDisplay = Product_PhotosService.loadAllPhotos();
+        await loadAllProducts(selectedEmail);
+        _isLoading = false;
+    }
+    bool hideError = true;
+    public async Task loadProducts(string email)
+    {
+
+        _products = await ProductService.GetProductsEntrepreneurAsync(email);
+        _finalproducts = _products;
+    }
+
+    public void loadProductsByTerms(KeyboardEventArgs key)
+    {
+
+        if (inputValue != null)
+        {
+
+            _products = _finalproducts;
+            _products = _products.Filter(p => p.Product_Name.Contains(inputValue)).ToList();
+        }
+    }
+
+
+    public async Task loadProductsServices(string email)
+    {
+        _productsServices = await Product_ServiceService.GetProductsServicesEntrepreneurAsync(email);
+    }
+
+    public async Task loadProductsByCategory(string email, int category_id)
+    {
+        _products = await ProductService.GetProductsByCategoryAsync(email, category_id);
+        _productsServices = await Product_ServiceService.GetProductsByCategoryAsync(email, category_id);
+    }
+
+    // metodos para prueba de categories
+
+    //RowDrop
+    private void Rowdrop(Syncfusion.Blazor.Grids.RowDragEventArgs<Category> args)
+    {
+        CategoryService.Rowdrop(args, this.TreeGrid);
+    }
+
+    //SelectionHandler
+
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Category> args)
+    {
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        if (SelectedCategories.Count() > 0)
+        {
+            selectedCategory = SelectedCategories.First();
+            await loadProductsByCategory(selectedEmail, selectedCategory.Id);
+        }
+        else
+        {
+            selectedCategory = null;
+        }
+    }
+
+    public async Task SelectionHandler2(Syncfusion.Blazor.Grids.RowDeselectEventArgs<Category> args)
+    {
+        if (args.Data.Id == selectedCategory.Id && !firstClick)
+        {
+            await loadProducts(selectedEmail);
+            await loadProductsServices(selectedEmail);
+            await loadCategories();
+        }
+        firstClick = false;
+    }
+
+    //puede rescibir parametro
+    void LinktoPage(string CodeId)
+    {
+        NavManager.NavigateTo("/ViewProduct" + "/" + CodeId);
+    }
+
+}

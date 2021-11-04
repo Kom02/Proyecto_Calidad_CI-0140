@@ -1,0 +1,78 @@
+﻿@page "/Paging"
+@using EmprendeUCR_WebApplication.Data.Entities.ContextShop;
+
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        @foreach (var link in _links)
+        {
+            <li @onclick="() => OnSelectedPage(link)" style="cursor: pointer;" class="page-item @(link.Enabled ? null : "disabled") @(link.Active ? "active" : null)">
+                <span class="page-link" href="#">@link.Text</span>
+            </li>
+        }
+    </ul>
+</nav>
+
+@code {
+
+    // Object parameter to store the data to be shown on the pagination.
+    [Parameter]
+    public PagingData pagingData { get; set; }
+
+    // Spread parameter to mount the final link
+    [Parameter]
+    public int Spread { get; set; }
+
+    // Selected page to be shown
+    [Parameter]
+    public EventCallback<int> SelectedPage { get; set; }
+
+    // List to store generated links for the pagination.
+    private List<PagingLink> _links;
+
+    /*
+      Summary: Method called to generate the pagination link
+      Parameters: Method does not recieve parameters
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    protected override void OnParametersSet()
+    {
+        CreatePaginationLinks();
+    }
+
+    /*
+      Summary: Method to generate a pagination link considerating the current page and the spread. It adds the link 
+      to the links list.
+      Parameters: Method does not recieve parameters
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private void CreatePaginationLinks()
+    {
+        _links = new List<PagingLink>();
+        _links.Add(new PagingLink(pagingData.CurrentPage - 1, pagingData.HasPrevious, "Anterior"));
+        for (int i = 1; i <= pagingData.TotalPages; i++)
+        {
+            if (i >= pagingData.CurrentPage - Spread && i <= pagingData.CurrentPage + Spread)
+            {
+                _links.Add(new PagingLink(i, true, i.ToString()) { Active = pagingData.CurrentPage == i });
+            }
+        }
+        _links.Add(new PagingLink(pagingData.CurrentPage + 1, pagingData.HasNext, "Siguiente"));
+    }
+
+    /*
+      Summary: Takes the selected page, a pagination link and checks wheter or not the link page equals the current page
+      and if not, sets is to it.
+      Parameters: Method recieves an Object PagingLink 
+      Return: Nothing
+      Exceptions: There aren't known exceptions
+    */
+    private async Task OnSelectedPage(PagingLink link)
+    {
+        if (link.Page == pagingData.CurrentPage || !link.Enabled)
+            return;
+        pagingData.CurrentPage = link.Page;
+        await SelectedPage.InvokeAsync(link.Page);
+    }
+}

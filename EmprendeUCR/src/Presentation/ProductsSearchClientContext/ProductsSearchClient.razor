@@ -1,0 +1,545 @@
+﻿@page "/ProductsSearch/{inputValue}"
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Application.ProductsSearchClientContext
+@using Syncfusion.Blazor.TreeGrid;
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Inputs
+@inject IProductsSearchClientService ProductsSearchClientService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IJSRuntime JsRuntime
+
+
+<div class="padre">
+        <div class="izquierdo">
+
+            <div class="flex-buscar">
+                <input @bind="@inputValue" @onkeyup="@EnterKey" class="form-control mr-sm-2" type="search" placeholder="Buscar productos" aria-label="Search" />
+                <button @onclick="searchType" class="btn btn-primary" type="submit">Buscar</button>
+            </div>
+
+
+            <p class="secondary_title marginElements">Orden por Precio:</p>
+
+            <div class="form-check">
+                @if (ascendentCheck == true)
+                {
+
+
+                    <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault"@onclick="searchType" checked >
+                }
+                else
+                {
+                    <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" @onclick="searchProductAscendent">
+                }
+            
+                <label class="form-check-label" for="flexCheckDefault">
+                    Ascendente
+                </label>
+            </div>
+            <div class="form-check">
+                @if (descendentCheck == true)
+                {
+                    <input class="form-check-input" type="checkbox" value="" id="flexCheckChecked" @onclick="searchType" checked>
+                }
+                else
+                {
+                    <input class="form-check-input" type="checkbox" value="" id="flexCheckChecked"  @onclick="searchProductDescendent">
+                }
+
+                <label class="form-check-label" for="flexCheckChecked">
+                    Descendente
+                </label>
+            </div>
+
+
+
+            <SfToolbar ID="ToolBar">
+                <ToolbarItems>
+                    <ToolbarItem OnClick="@TreeGrid.ExpandAll" Text="Expandir" TooltipText="Muestra todas categorías"></ToolbarItem>
+                    <ToolbarItem OnClick="@TreeGrid.CollapseAll" Text="Colapsar" TooltipText="Oculta todas las subcategorías"></ToolbarItem>
+                </ToolbarItems>
+            </SfToolbar>
+            <SfTreeGrid ID="TreeGrid" @ref="TreeGrid" AllowSorting="true" AllowRowDragAndDrop="false" DataSource="@_categories" IdMapping="Id" ParentIdMapping="ParentId" AllowSelection="true" TreeColumnIndex="0" EnableCollapseAll="true">
+                <TreeGridEvents TValue="Category" RowDropped="Rowdrop" RowSelected="SelectionHandler" RowDeselecting="deSelectionHandler"></TreeGridEvents>
+                <TreeGridSortSettings>
+                    <TreeGridSortColumns>
+                        <TreeGridSortColumn Field="Title" Direction="Syncfusion.Blazor.Grids.SortDirection.Ascending"></TreeGridSortColumn>
+                    </TreeGridSortColumns>
+                </TreeGridSortSettings>
+                <TreeGridColumns>
+                    <TreeGridColumn Field="Title" HeaderText="Nombre" Width="100"></TreeGridColumn>
+                </TreeGridColumns>
+            </SfTreeGrid>
+        </div>
+        <div class="derecho">
+
+
+            @if (isLoading)
+            {
+                <div class="errorMessage">
+                    <p>Buscando</p>
+                </div>
+            }
+            else
+            {
+                @if (_product.Count() == 0 && _service.Count() == 0)
+                {
+                    <div class="errorMessage">
+                        <p>Lo sentimos no hay productos relacionados con la busqueda</p>
+                    </div>
+                }
+                else
+                {
+                    // titulo productos
+                    <h5 class="ProductTitle">Productos</h5>
+
+                    <div class="allProducts">
+                        @foreach (var product in _product)
+                        {
+                        
+                            <div class="card border-blue">
+                                    @{
+                                        var myImageProduct = photosDisplay.FirstOrDefault(p => p.Code_ID == product.Code_ID);
+                                        int myAviabiliy = (_productService.FirstOrDefault(p => p.Code_ID.Equals(product.Code_ID))).Availability;
+                                        string myImageSource = IMAGE_NOT_FOUND;
+                                        bool stock = true;
+                                    }
+
+                                    @if (myImageProduct != null)
+                                    {
+                                        myImageSource = ProductsSearchClientService.convertImageDisplay(myImageProduct.Photos);
+                                    }
+
+                                    <p>@product.Product_Name</p>
+                                    <p class="item_description"></p>
+                                    <p>@product.Product_Description</p>
+                                    <p class="item_price">@product.Price</p>
+
+                                @foreach (var aviability in _productService)
+                                {
+                                    if (product.Code_ID == aviability.Code_ID)
+                                    {
+                                        if (aviability.Availability > 0)
+                                        {
+                                            <p style="color: #87c568">Disponible</p>
+
+                                        }
+                                        else
+                                        {
+                                            <p style="color: #f6392f">No Disponible</p>
+                                                stock = false;
+                                        }
+
+
+                                    }
+                                }                           
+                                    <button class="button-img" @onclick="() => showDetails( product, myImageSource,myAviabiliy)" ><img class="imageProduct" src=@myImageSource /></button>
+
+                                    @if (@log && stock)
+                                    {
+                                        <button class="btn btn-primary botonCompra" @onclick="() => addInCart(product)">Añadir al carrito</button>
+                                    }
+
+
+                            </div>
+                        }
+
+                    </div>
+                    @*div que cierra de productos*@
+
+                    <hr>
+                    <h5 class="ServiceTitle">Servicios</h5>
+
+                    @*div que comienza de servicios*@
+                    <div class="allServices">
+
+
+
+
+                        @if (_service.Count() != 0)
+                        {
+                            // titulo
+
+
+                            foreach (var service in _service)
+                            {
+
+                                 <div class="card border-blue">
+                                    @{
+                                        var myImageProduct = _servicePhotos.FirstOrDefault(p => p.Code_ID == service.Code_ID);
+                                        int myAviabiliy = 0;
+                                        string myImageSource = IMAGE_NOT_FOUND;
+                                    }
+
+                                    @if (myImageProduct != null)
+                                    {
+                                        myImageSource = ProductsSearchClientService.convertImageDisplay(myImageProduct.Photos);
+                                    }
+
+                                    <p>@service.Service_Name</p>
+                                    <p class="item_description">@service.Service_Description</p>
+                                    <p class="item_price">@service.Price_per_hour</p>
+
+                                    @foreach (var aviability in _productService)
+                                    {
+                                        if (service.Code_ID == aviability.Code_ID)
+                                        {
+                                            if (aviability.Availability > 0)
+                                            {
+                                                myAviabiliy = 1;
+                                                <p style="color: #87c568">Disponible</p>
+                                            }
+
+                                            else
+                                            {
+                                                myAviabiliy = 0;
+                                            <p style="color: #f6392f">No Disponible</p>
+                                            }
+                                        }
+                                    }
+                                    <button class="button-img" @onclick="() => showDetailsService( service, myImageSource,myAviabiliy)"><img class="imageProduct" src=@myImageSource /></button>
+
+
+                                 </div>
+                            }
+                         }
+                    </div>
+                }
+            }
+        </div>
+</div>
+
+    <!-- Display product details modal -->
+    <CascadingValue Value="@inCart">
+        <EmprendeUCR.Presentation.HomePageClientContext.Component.DisplayProduct @ref="productModal"  isProduct=@isProduct availability="@productAvailabilityToShowDetails" imageProduct="@productImageToShowDetails" isLoged="@log" addToCart="@(async (Product p) => { await addInCart(p); })" myProduct="@productToShowDetails">
+        </EmprendeUCR.Presentation.HomePageClientContext.Component.DisplayProduct>
+    </CascadingValue>
+
+
+@code {
+    /*
+    *Code
+    */
+    private static string IMAGE_NOT_FOUND = "/images/notfound.png";
+    [Parameter]
+    public string inputValue { get; set; }
+
+    private bool inCart { get; set; }
+    private EmprendeUCR.Presentation.HomePageClientContext.Component.DisplayProduct productModal { get; set; }
+    private Product productToShowDetails = new Product();
+    private string productImageToShowDetails = string.Empty;
+    private int productAvailabilityToShowDetails;
+    private bool isProduct = true;
+
+    private IEnumerable<Product> _product = new List<Product>();
+    private IList<Product> _product3 = new List<Product>();
+    private IEnumerable<Service> _service = new List<Service>();
+    IList<ProductPhotos> photosDisplay;
+    bool categorySelected = false;
+    bool inputText = false;
+
+    private SfTreeGrid<Category> TreeGrid { get; set; }
+    private IList<Category> _categories;
+    private Category SelectedCategory;
+    private IList<ProductService> _productService;
+    private IList<Service_Photos> _servicePhotos;
+    IEnumerable<Product> product2;
+
+    private string email;
+    bool log = false;
+    bool isLoading = true;
+
+    bool descendentCheck = false;
+
+    bool ascendentCheck = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        email = await sessionStorage.GetItemAsync<string>("Email");
+        if (email == null)
+        {
+            email = "noEmail";
+        }
+        else
+        {
+            log = true;
+        }
+
+        photosDisplay = ProductsSearchClientService.listAllProductsPhotos();
+        initialSearch();
+        _categories = await ProductsSearchClientService.getAllCategoriesAsync();
+        _productService =  ProductsSearchClientService.GetAllProductsServicesAsync();
+        _servicePhotos = ProductsSearchClientService.getServicePhotos();
+        isLoading = false;
+    }
+
+    private async Task searchType()
+    {
+        int emptyCharacters = 0;
+
+        if (!string.IsNullOrEmpty(inputValue))
+        {
+            for (int i = 0; i < inputValue.Length; i++)
+            {
+                if (inputValue.ElementAt(i).Equals(' '))
+                {
+                    emptyCharacters++;
+                }
+            }
+
+            if (emptyCharacters != inputValue.Length)
+            {
+                if (categorySelected == false)
+                {
+                    search();
+                    searchService();
+                }
+                else
+                {
+                    await searchCategory();
+                    await searchCategoryService();
+                }
+            }
+        }
+        else
+        {
+            descendentCheck = false;
+            ascendentCheck = false;
+            await SelectionHandler();
+        }
+
+
+
+    }
+
+    private void initialSearch()
+    {
+        if (inputValue.Length >= 14)
+        {
+            string substrInput = inputValue.Substring(0, 14);
+            if (substrInput.Equals("_categoryID = "))
+            {
+                int idCategory = Int32.Parse(inputValue.Substring(14));
+                _product = ProductsSearchClientService.getProductsListByCategoryId(idCategory);
+                _service = ProductsSearchClientService.getServicesListByCategoryId(idCategory);
+                inputValue = "";
+            }
+            else
+            {
+                search();
+                searchService();
+            }
+        }
+        else
+        {
+            search();
+            searchService();
+        }
+    }
+
+    private async Task searchCategory()
+    {
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        string result = "%";
+
+        result += inputValue + "%";
+        SelectedCategory = SelectedCategories.First();
+        _product = ProductsSearchClientService.getListProductsRestricted(result, SelectedCategory.Id);
+    }
+
+    private void search()
+    {
+        inputText = true;
+        string result = "%";
+
+        result += inputValue + "%";
+
+        _product = ProductsSearchClientService.getListProducs(result);
+
+
+
+        //product2 = _product;
+
+
+
+    }
+
+    public async Task EnterKey(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            await searchType();
+        }
+    }
+
+    //RowDrop
+    private void Rowdrop(Syncfusion.Blazor.Grids.RowDragEventArgs<Category> args)
+    {
+        ProductsSearchClientService.Rowdrop(args, this.TreeGrid);
+    }
+
+    public void deSelectionHandler()
+    {
+        categorySelected = false;
+    }
+    /*
+    //SelectionHandler
+    public async Task SelectionHandler(Syncfusion.Blazor.Grids.RowSelectEventArgs<Category> args)
+    {
+
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        if (SelectedCategories.Count() == 0)
+        {
+            SelectedCategory = null;
+        }
+        else
+        {
+            SelectedCategory = SelectedCategories.First();
+
+            if (ProductsSearchClientService.verifyChildCategory(SelectedCategory.Id))
+            {
+                categorySelected = true;
+                _product = ProductsSearchClientService.getProductsListByCategoryId(SelectedCategory.Id);
+                _service = ProductsSearchClientService.getServicesListByCategoryId(SelectedCategory.Id);
+
+            }
+        }
+    }
+    */
+
+    //SelectionHandler
+    public async Task SelectionHandler()
+    {
+        inputValue = "";
+
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        if (SelectedCategories.Count() == 0)
+        {
+            SelectedCategory = null;
+        }
+        else
+        {
+            SelectedCategory = SelectedCategories.First();
+
+            if (ProductsSearchClientService.verifyChildCategory(SelectedCategory.Id))
+            {
+                categorySelected = true;
+                _product = ProductsSearchClientService.getProductsListByCategoryId(SelectedCategory.Id);
+                _service = ProductsSearchClientService.getServicesListByCategoryId(SelectedCategory.Id);
+
+            }
+
+            if (descendentCheck == true)
+            {
+                _product = _product.OrderByDescending(_product => _product.Price);
+                _service = _service.OrderByDescending(_service => _service.Price_per_hour);
+            }else if (ascendentCheck == true)
+            {
+                _product = _product.OrderBy(_product => _product.Price);
+                _service = _service.OrderBy(_service => _service.Price_per_hour);
+            }
+        }
+    }
+
+    private async Task addInCart(Product product)
+    {
+        bool productExist = await ProductsSearchClientService.searchProductById(email, product.Code_ID);
+        if (productExist == false)
+        {
+            inCart = false;
+            ShoppingCartHas productToAdd = new ShoppingCartHas
+            {
+                Email = email,
+                Code_ID = product.Code_ID,
+                Entrepreneur_Email = product.Entrepreneur_Email,
+                Category_ID = product.Category_ID
+            };
+
+            await ProductsSearchClientService.addProductShoppingCart(productToAdd);
+
+            await JsRuntime.InvokeVoidAsync("alerta", "PRODUCTO AGREGADO AL CARRITO");
+        }
+        else
+        {
+            inCart = true;
+            await JsRuntime.InvokeVoidAsync("alerta", "Producto ya se encuentra en el carrito");
+        }
+    }
+
+    private void searchService()
+    {
+        string resultService = "%";
+
+        resultService += inputValue + "%";
+
+        _service = ProductsSearchClientService.getListServices(resultService);
+
+    }
+
+    private async Task searchCategoryService()
+    {
+        var SelectedCategories = await this.TreeGrid.GetSelectedRecords();
+        string resultService = "%";
+
+        resultService += inputValue + "%";
+        SelectedCategory = SelectedCategories.First();
+        _service = ProductsSearchClientService.getListServicesRestricted(resultService, SelectedCategory.Id);
+    }
+
+
+    private void searchProductDescendent()
+    {
+
+        _product = _product.OrderByDescending(_product => _product.Price);
+
+        _service = _service.OrderByDescending(_service => _service.Price_per_hour);
+
+        if (ascendentCheck==true)
+        {
+            ascendentCheck = false;
+        }
+        descendentCheck = true;
+    }
+
+    private void searchProductAscendent()
+    {
+
+
+
+
+        _product = _product.OrderBy(_product => _product.Price);
+
+        _service = _service.OrderBy(_service => _service.Price_per_hour);
+
+        if (descendentCheck == true)
+        {
+            descendentCheck = false;
+        }
+
+        ascendentCheck = true;
+    }
+
+    private void showDetails(Product _product, string _source, int _availability, bool _isProduct = true)
+    {
+        productToShowDetails = _product;
+        productImageToShowDetails = _source;
+        productAvailabilityToShowDetails = _availability;
+        isProduct = _isProduct;
+        productModal.Open();
+    }
+
+    private void showDetailsService(Service service, string _source, int _availability)
+    {
+        Product _product = new Product();
+        _product.Entrepreneur_Email = service.Entrepreneur_Email;
+        _product.Price = service.Price_per_hour;
+        _product.Product_Name = service.Service_Name;
+        _product.Product_Description = service.Service_Description;
+
+        showDetails(_product, _source, _availability, false);
+
+
+
+    }
+}

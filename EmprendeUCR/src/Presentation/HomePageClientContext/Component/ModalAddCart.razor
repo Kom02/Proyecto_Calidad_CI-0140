@@ -1,0 +1,56 @@
+﻿
+<div class="modal @ModalClass" id="shoppingCartModal" tabindex="-1" role="dialog" style="display:@ModalDisplay" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Emprende UCR</h5>
+            </div>
+            <div class="modal-body">
+                @if (inCart)
+                {
+                    <p>Producto ya se encuentra en el carrito</p>
+                }
+                else
+                {
+                    <p>Producto agregado al carrito</p>
+                }
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary"  @onclick="() => Close()" >Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter]
+    public bool inCart { get; set; }
+
+    public Guid Guid = Guid.NewGuid();
+    public string ModalDisplay = "none;";
+    public string ModalClass = "";
+    public bool ShowBackdrop = false;
+
+    public void Open()
+    {
+        ModalDisplay = "block;";
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        ModalDisplay = "none";
+        ModalClass = "";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+}

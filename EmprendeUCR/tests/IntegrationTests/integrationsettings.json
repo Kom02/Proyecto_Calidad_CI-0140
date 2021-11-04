@@ -1,0 +1,7 @@
+﻿{
+  "ConnectionStrings": {
+    "TestConnection": "Data Source=(localdb)\\ProjectsV13;Initial Catalog=DB_Test;Integrated Security=True;Pooling=False;Connect Timeout=30"
+  },
+  "SeedDataScript": "seed_data.sql",
+  "SeedNotificationScript": "seed_Notification.sql"
+}

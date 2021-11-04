@@ -1,0 +1,321 @@
+﻿
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using EmprendeUCR_WebApplication.Application.OrderContext.Implementations
+@using EmprendeUCR_WebApplication.Data.Services.Categories
+@using System
+@inject EntrepreneurService EntrepreneurService
+@inject Product_ServiceService Product_ServiceService
+@inject ClientService Client_Service
+@inject UserServicePandemic UserService
+@inject Alliance_Service allianceService
+@inject OrderService OrderService
+@inject OfferService offerService
+@inject NavigationManager NavManager
+@inject CategoryService CategoryService
+@inject HasSuppliesService HasSuppliesService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject EntrepreneurService EntrepreneurService
+@inject ProductService ProductService
+@inject Product_ServiceService Product_ServiceService
+@inject UserServicePandemic UserService
+
+@if (loadingPage)
+{
+    <body>
+        Cargando ...
+    </body>
+}
+else
+{
+    <body>
+        <!--Display de tipos de alianzas-->
+        <div class=" d-flex">
+            <!--Mostrar alianzas aceptadas -->
+            <div class="form-check form-switch m-lg-3">
+                <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" checked @onchange="@allowMyAceptedAlliances">
+                <label class="form-check-label" for="flexSwitchCheckDefault">Alianzas aceptadas </label>
+            </div>
+
+            <!--Mostrar alianzas pendientes -->
+            <div class="form-check form-switch m-lg-3">
+                <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" checked @onchange="@allowMyPendingAlliances">
+                <label class="form-check-label" for="flexSwitchCheckDefault">Alianzas pendientes </label>
+            </div>
+
+            <!--Mostrar alianzas rechazadas -->
+            <div class="form-check form-switch m-lg-3">
+                <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" unchecked @onchange="@allowMyRejectedAlliances">
+                <label class="form-check-label" for="flexSwitchCheckDefault">Alianzas rechazadas </label>
+            </div>
+        </div>
+
+        <table class="table">
+            <!--Table Headers-->
+            <thead class="bg-blue">
+                <tr>
+                    <!--Emprendedor header-->
+                    <th scope="col" width="200" valign="middle" align="center"> Emprendedor </th>
+                    <!--Categorías header-->
+                    <!--Estado de solicitud  header-->
+                    <th scope="col" width="200" valign="middle" align="center"> Estado de solicitud </th>
+                    <!--Acciones header-->
+                    <th scope="col" width="200" valign="middle" align="center"> Acciones </th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <!--Mis alianzas pendientes-->
+                @if (displayMyPendingAlliances && myPendingAlliances?.Count > 0)
+                {
+                    @foreach (var pendingAlliance in myPendingAlliances)
+                    {
+
+                    <tr class='hover-light-grey'>
+                    <!-- Nombre del emprendedor -->
+                    <td scope="row" width="200" valign="middle" align="left"  @onclick="() => viewEntrepreneurProfile(pendingAlliance.User_Email != userLogged ? pendingAlliance.User_Email : pendingAlliance.Ally_User_Email)">@(pendingAlliance.User_Email != userLogged ? pendingAlliance.User_Email : pendingAlliance.Ally_User_Email)</td>
+                    <!-- Categorias -->
+
+                    <!-- Estado de solicitud -->
+                    <td scope="row" width="200" valign="middle" align="left">@(pendingAlliance.User_Email == userLogged ? "Esperando respuesta" : "Pendiente")</td>
+                    <!--Acciones de solicitud-->
+                    <th scope="row">
+                        <!--Si es una solicitud de otro emprendedor, despliega la opcion de aceptar la alianza-->
+                        @if (pendingAlliance.User_Email != userLogged)
+                        {
+                            // Accept alliance
+                            <button type="button" class="btn btn-success material-icons-outlined" @onclick="() => acceptAlliance(pendingAlliance)"> done</button>
+                            // Decline Alliance
+                            <button type="button" class="btn btn-danger material-icons-outlined m-lg-2" @onclick="() => declineAlliance(pendingAlliance)"> close</button>
+                        }
+                        else
+                        {
+
+                            <!--Rechazar alianza-->
+                            <button type="button" class="btn btn-danger material-icons-outlined m-lg-2 " @onclick="() => deleteAlliance(pendingAlliance, myPendingAlliances)">delete</button>
+                        }
+                    </th>
+                </tr>
+                    }
+
+                }
+
+                <!-- Mis alianzas aceptadas-->
+                @if (displayMyAcceptedAlliances && myAcceptedAlliances?.Count > 0)
+                {
+                    @foreach (var acceptedAlliances in myAcceptedAlliances)
+                    {
+
+
+
+                        <tr class='hover-light-grey'>
+                            <!-- Nombre del emprendedor -->
+                            <td scope="row" width="200" valign="middle" align="left"  @onclick="() => viewEntrepreneurProfile(acceptedAlliances.User_Email != userLogged ? acceptedAlliances.User_Email : acceptedAlliances.Ally_User_Email)">@(acceptedAlliances.User_Email != userLogged ? acceptedAlliances.User_Email : acceptedAlliances.Ally_User_Email)</td>
+                            <!-- Categorias -->
+                            <!-- Estado de solicitud -->
+                            <td scope="row" width="200" valign="middle" align="left">Aceptado</td>
+                            <!--Borrar alianza-->
+                            <th scope="row"> <button type="button" class="btn btn-danger material-icons-outlined " @onclick="() => deleteAlliance(acceptedAlliances, myAcceptedAlliances)">delete</button> </th>
+                        </tr>
+                    }
+
+                }
+
+                <!--Mis alianzas rechazadas-->
+                @if (displayMyRejectedAlliances && myRejectedAlliances?.Count > 0)
+                {
+                    @foreach (var rejectedAlliance in myRejectedAlliances)
+                    {
+                        <tr class='hover-light-grey'>
+                            <!-- Nombre del emprendedor -->
+                            <td scope="row" width="200" valign="middle" align="left" @onclick="() => viewEntrepreneurProfile(rejectedAlliance.User_Email != userLogged ? rejectedAlliance.User_Email : rejectedAlliance.Ally_User_Email)">@(rejectedAlliance.User_Email != userLogged ? rejectedAlliance.User_Email : rejectedAlliance.Ally_User_Email)</td>
+                            <!-- Categorias -->
+                            <!-- Estado de solicitud -->
+                            <td scope="row" width="200" valign="middle" align="left">Rechazado</td>
+                            <!--Borrar alianza-->
+                            <th scope="row"> <button type="button" class="btn btn-danger material-icons-outlined " @onclick="() => deleteAlliance(rejectedAlliance, myRejectedAlliances)">delete</button> </th>
+                        </tr>
+                    }
+                }
+
+                <!--Cuando no hay tipos de alianzas marcados-->
+                @if (!displayMyAcceptedAlliances && !displayMyPendingAlliances && !displayMyRejectedAlliances)
+                {
+                    <p> Seleccione las alianzas que desea desplegar :)</p>
+                }
+
+                @if (showOfferAlertMessage)
+                {
+                    <div class="modal fade show d-block" id="exampleModal" tabindex="-1" role="dialog">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="titleLabel">Error al eliminar la alianza.</h5>
+                                    <button type="button" class="close" @onclick="@showOfferErrorPopUp" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">X</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <span>Existe una o varias ofertas que utiliza productos o servicios de ambos emprendedores, por favor borrarlas. :)</span>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                }
+            </tbody>
+        </table>
+
+
+        <NavLink class="nav-link" href="Alliances">
+            <button class="btn btn-primary">Buscar nuevas alianzas</button>
+        </NavLink>
+    </body>
+}
+
+
+
+
+@code {
+
+    // Stores the email of the user logged
+    String userLogged = "";
+    // Stores my pending alliances
+    List<Alliance> myPendingAlliances = new List<Alliance>();
+    // Store my accepted alliances
+    List<Alliance> myAcceptedAlliances = new List<Alliance>();
+    // Store my rejected Alliances
+    List<Alliance> myRejectedAlliances = new List<Alliance>();
+    // Display my accepted alliances
+    bool displayMyAcceptedAlliances = true;
+    // Display my pending alliances
+    bool displayMyPendingAlliances = true;
+    // Display my rejected alliances
+    bool displayMyRejectedAlliances = false;
+
+    IList<Product_Service> products_services_general_list = new List<Product_Service>();
+    List<my_User> users_list = new List<my_User>();
+    List<HasSupplies> has_supplies_list = new List<HasSupplies>();
+    string selectedEmail;
+
+    public class my_User
+    {
+        public User entrepreneur { get; set; }
+        public IList<Category> categories { get; set; }
+    }
+
+    // Loading page
+    bool loadingPage = true;
+    // Show offers alert
+    bool showOfferAlertMessage = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        userLogged = await sessionStorage.GetItemAsync<string>("Email");
+        // Load pending alliances
+        myPendingAlliances = allianceService.getAlliancesByEntrepreneurEmailAndStatus(userLogged, 0);
+        // Load accepted alliances
+        myAcceptedAlliances = allianceService.getAlliancesByEntrepreneurEmailAndStatus(userLogged, 1);
+        // Load rejected alliances
+        myRejectedAlliances = allianceService.getAlliancesByEntrepreneurEmailAndStatus(userLogged, 2);
+        // Sign to the page that alerts already load all
+        loadingPage = false;
+        selectedEmail = await sessionStorage.GetItemAsync<string>("Email");
+        products_services_general_list = await Product_ServiceService.GetAllProductsServicesAsync();
+        has_supplies_list = await HasSuppliesService.GetAllHasSuppliesEntrepreneurAsync(selectedEmail);
+        await ChargeNonRepetedCustomers();
+
+    }
+
+    public void allowMyAceptedAlliances()
+    {
+        displayMyAcceptedAlliances = !displayMyAcceptedAlliances;
+    }
+
+    public void allowMyPendingAlliances()
+    {
+        displayMyPendingAlliances = !displayMyPendingAlliances;
+    }
+
+    public void allowMyRejectedAlliances()
+    {
+        displayMyRejectedAlliances = !displayMyRejectedAlliances;
+    }
+
+    public void deleteAlliance(Alliance alliance, List<Alliance> list)
+    {
+        if (!checkIfAllianceHasOffers(alliance))
+        {
+            list.Remove(alliance);
+            allianceService.delete_Alliace(alliance);
+        }
+        else
+        {
+            showOfferErrorPopUp();
+        }
+    }
+
+    public bool checkIfAllianceHasOffers(Alliance alliance)
+    {
+        string allie = alliance.Ally_User_Email != userLogged ? alliance.Ally_User_Email : alliance.User_Email;
+
+        return offerService.hasCommonOffers(userLogged, allie);
+    }
+
+    public void acceptAlliance(Alliance alliance)
+    {
+        // Change status to accepted
+        allianceService.updateAlliance(alliance, 1);
+        // Add it to the accepted alliances list
+        myAcceptedAlliances.Add(alliance);
+        // Erase it from the pending list
+        myPendingAlliances.Remove(alliance);
+    }
+    public void declineAlliance(Alliance alliance)
+    {
+        // Change status to accepted
+        allianceService.updateAlliance(alliance, 2);
+        // Add it to the accepted alliances list
+        myRejectedAlliances.Add(alliance);
+        // Erase it from the pending list
+        myPendingAlliances.Remove(alliance);
+    }
+
+    public void viewEntrepreneurProfile(string entrepreneurEmail)
+    {
+        NavManager.NavigateTo("/My_Alliance/ViewClient/" + entrepreneurEmail);
+    }
+
+
+
+    private async Task ChargeNonRepetedCustomers()
+    {
+        foreach (var prod in products_services_general_list)
+        {
+            var List = has_supplies_list.FindAll(s => s.Supplie_ID == prod.Category_ID);
+            if (List.Count() > 0)
+            {
+                var userAlreadyExists = users_list.FindAll(u => u.entrepreneur.Email == prod.Entrepreneur_Email).Count() > 0;
+                if (!userAlreadyExists && prod.Entrepreneur_Email != selectedEmail)
+
+                {
+                    my_User userToAdd = new my_User();
+                    userToAdd.categories = new List<Category>();
+                    userToAdd.entrepreneur = await UserService.getUser(prod.Entrepreneur_Email);
+                    var cat = CategoryService.getCategory(prod.Category_ID);
+                    userToAdd.categories.Add(cat);
+                    users_list.Add(userToAdd);
+                }
+
+            }
+        }
+    }
+
+
+    public void showOfferErrorPopUp()
+    {
+        showOfferAlertMessage = !showOfferAlertMessage;
+    }
+}
+

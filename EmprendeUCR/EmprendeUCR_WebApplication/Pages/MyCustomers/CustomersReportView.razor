@@ -1,0 +1,143 @@
+﻿@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using EmprendeUCR_WebApplication.Application.OrderContext.Implementations
+@using EmprendeUCR_WebApplication.Domain.OrderContext.Entities;
+@inject EntrepreneurService EntrepreneurService
+@inject ProductService ProductService
+@using Syncfusion.Blazor.TreeGrid;
+@inject Product_ServiceService Product_ServiceService
+@inject ClientService Client_Service
+@inject UserServicePandemic UserService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject OrderService OrderService
+@inject NavigationManager NavManager
+
+
+<body>
+    @if (!ListEmpthy)
+    {
+        <input @bind-value="inputValue" @onkeyup="@loadProductsByTerms" class="form-control mr-sm-2 w-25 mb-2" type="text" placeholder="Buscar en Clientes" aria-label="Search" />
+        @if (ReportList.Count() > 0)
+        {
+            <table class="table">
+                <thead class="bg-blue">
+                    <tr>
+                        <th scope="col">Cantidad de Compras</th>
+                        <th scope="col">Ultima Compra</th>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Primer Apellido</th>
+                        <th scope="col">Segundo Apellido</th>
+                        <th scope="col">Provincia</th>
+                        <th scope="col">Cantón</th>
+                        <th scope="col">Distrito</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in ReportList.OrderByDescending(r => r.NumOrders))
+                    {
+                        <tr class='hover-light-grey' @onclick="() => LinktoPage(backPage, user.user.Email.ToString())">
+                            <th scope="row"> @user.NumOrders</th>
+                            <th scope="row"> @user.lastOrder</th>
+                            <th scope="row"> @user.user.Name</th>
+                            <th scope="row"> @user.user.F_Last_Name</th>
+                            <th scope="row"> @user.user.S_Last_Name</th>
+                            <th scope="row"> @user.user.Province_Name </th>
+                            <th scope="row"> @user.user.Canton_Name </th>
+                            <th scope="row"> @user.user.District_Name </th>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <h2>No hay clientes relacionados a "@inputValue"</h2>
+        }
+    }
+    else
+    {
+        <h2>De momento no tiene clientes, esperamos que tenga clientes pronto :)</h2>
+    }
+</body>
+
+@code {
+    public class my_User
+    {
+        public User user { get; set; }
+        public int NumOrders { get; set; }
+        public DateTime lastOrder { get; set; }
+    }
+    //Email confirmation del emprendedor logeado
+    bool ListEmpthy = false;
+    string selectedEmail;
+    string backPage = "/MyCustomers";
+    List<Order> ordersList = new List<Order>();
+    List<Order> NonRepetedCurstomersOrdersLists = new List<Order>();
+    List<User> CustomersList = new List<User>();
+    List<my_User> ReportList = new List<my_User>();
+    private List<my_User> constReport = new List<my_User>();
+    private string inputValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        selectedEmail = await sessionStorage.GetItemAsync<string>("Email");
+        ordersList = await OrderService.GetEntrepreneurFinalizedOrders(selectedEmail);
+        if (ordersList.Count == 0)
+        {
+            ListEmpthy = true;
+        }
+        else
+        {
+            await ChargeNonRepetedCustomers();
+        }
+    }
+
+    private async Task ChargeNonRepetedCustomers()
+    {
+        foreach (var order in ordersList)
+        {
+            if (ReportList.Where(u => u.user.Email == order.ClientEmail).Count() < 1)
+            {
+                my_User userToAdd = new my_User();
+                userToAdd.user = await UserService.getUser(order.ClientEmail);
+                userToAdd.NumOrders = ordersList.Where(o => o.ClientEmail == order.ClientEmail).Count();
+                userToAdd.lastOrder = FindMostRecentDate(order.ClientEmail);
+                ReportList.Add(userToAdd);
+            }
+        }
+        constReport = ReportList;
+    }
+
+    private DateTime FindMostRecentDate(string userEmail)
+    {
+        DateTime DateTimeToReturn = DateTime.MinValue;
+        foreach (var order in ordersList)
+        {
+            if (order.ClientEmail == userEmail && order.DateAndHourCreation > DateTimeToReturn)
+            {
+                DateTimeToReturn = order.DateAndHourCreation;
+            }
+        }
+        return DateTimeToReturn;
+    }
+
+    public void loadProductsByTerms(KeyboardEventArgs key)
+    {
+        ReportList = constReport;
+        if (inputValue != null)
+        {
+            ReportList = ReportList.Filter(r => r.user.Name.Contains(inputValue) ||
+                r.user.F_Last_Name.Contains(inputValue) ||
+                r.user.S_Last_Name.Contains(inputValue) ||
+                r.user.Province_Name.Contains(inputValue) ||
+                r.user.District_Name.Contains(inputValue) ||
+                r.user.Canton_Name.Contains(inputValue)).ToList();
+        }
+    }
+
+    void LinktoPage(string backPage, string userEmail)
+    {
+        NavManager.NavigateTo(backPage + "/ViewClient" + "/" + userEmail);
+    }
+}
+

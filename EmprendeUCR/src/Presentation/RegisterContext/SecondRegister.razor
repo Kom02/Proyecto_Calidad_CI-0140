@@ -1,0 +1,170 @@
+﻿@page "/registroEncontrado"
+
+@using EmprendeUCR.Domain.Core.CoreEntities
+@using EmprendeUCR.Domain.RegisterContext.Entities
+@using EmprendeUCR.Application.RegisterContext
+@using Microsoft.AspNetCore.WebUtilities
+@using Blazored.FluentValidation
+@inject IRegisterService RegisterService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+
+@if (cargando)
+{
+    <h3>Cargando...</h3>
+    <p style="color:#FF0000">
+        @Error_Message
+    </p>
+}
+else
+{
+    <h3> Este correo está asociado a otra cuenta.</h3>
+    <h4> Se puede crear una cuenta de tipo @tipoCambio adicional.</h4>
+
+    <p> Se mantendran todos los datos y credenciales asociados a la cuenta principal.</p>
+    <center>
+        <button type="button" class="btn btn-primary" @onclick="() => crearRegistro()">Aceptar</button>
+        <button type="button" class="btn btn-danger" @onclick="() => cancelarRegistro()">Cancelar</button>
+    </center>
+}
+
+
+@code {
+    private string hash_correo = "";
+    private string typeOfUser = "";
+    private EmailConfirmation email = null;
+    private bool cargando = true;
+    private string tipoCambio = "";
+    private Register newRegister = new Register();
+    private string pwdType = "password";
+    private string text = "Mostrar Contraseña";
+    private string Error_Message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("email", out var parameter))
+        {
+            hash_correo = parameter;
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("type", out var parameter2))
+            {
+                typeOfUser = parameter2;
+                if (typeOfUser != "")
+                {
+                    if (typeOfUser == "1")
+                    {
+                        tipoCambio = "cliente";
+                    }
+                    else if (typeOfUser == "2")
+                    {
+                        tipoCambio = "emprendedor";
+                    }
+                    else if (typeOfUser == "3")
+                    {
+                        tipoCambio = "administrador";
+                    }
+                    email = await RegisterService.getEmailConfirmation(hash_correo);
+                    cargando = false;
+                }
+            }
+            else
+            {
+                cargando = true;
+                Error_Message = "Error cargando datos";
+            }
+        }
+        else
+        {
+            cargando = true;
+            Error_Message = "Error cargando datos";
+        }
+
+    }
+
+    public void showPassword()
+    {
+        if (pwdType == "password")
+        {
+            pwdType = "text";
+            text = "Esconder Contraseña";
+        }
+        else
+        {
+            pwdType = "password";
+            text = "Mostrar Contraseña";
+        }
+    }
+
+    public async Task crearRegistro()
+    {
+        if (tipoCambio == "cliente" || tipoCambio == "emprendedor")
+        {
+            bool findMembers = await RegisterService.verifyMembersExistence(email.Email);
+            if (!findMembers)
+            {
+                Members m = new Members
+                {
+                    User_Email = email.Email,
+                    Score = 0,
+                    Lat = 1.0,
+                    Long = 1.0,
+                    Direction = "",
+                };
+                await RegisterService.insertNewMember(m);
+            }
+
+            if (tipoCambio == "cliente")
+            {
+                Client cl = new Client
+                {
+                    User_Email = email.Email,
+                };
+                await RegisterService.insertNewClient(cl);
+
+                ShoppingCart s = new ShoppingCart
+                {
+                    Email = email.Email,
+                };
+                await RegisterService.insertNewShoppingCart(s);
+            }
+            else
+            {
+                /*Es emprendedor*/
+                Entrepreneur e = new Entrepreneur
+                {
+                    User_Email = email.Email,
+                    Presentation = "",
+                };
+
+                await RegisterService.insertNewEntrepreneur(e);
+            }
+        }
+
+        if (tipoCambio == "administrador")
+        {
+            Administrator a = new Administrator
+            {
+                User_Email = email.Email,
+            };
+
+            ActiveAdministrators activeAdmin = new ActiveAdministrators
+            {
+                Email = email.Email,
+                Creation_Date = DateTime.Now,
+                Response = false,
+                Confirm = false,
+                Active = false,
+                Response_Date = DateTime.MinValue,
+            };
+            await RegisterService.addNewActiveAdministrator(activeAdmin);
+            await RegisterService.insertNewAdministrator(a);
+        }
+
+        NavigationManager.NavigateTo("/messagePage?type=9");
+    }
+
+    public void cancelarRegistro()
+    {
+        NavigationManager.NavigateTo("/registro");
+    }
+}

@@ -1,0 +1,31 @@
+h3 {
+    text-align: center;
+}
+
+html {
+    height: 100vh
+}
+
+.errorMessage{
+    text-align: center;
+    color: #E40E0E;
+}
+
+.successMessage{
+    text-align: center;
+    color: #13c740;
+}
+
+.modalBbutton{
+    border: #f0f8ff;
+}
+
+.usersArea{
+    margin-top: 10px;
+    height: 500px;
+	overflow-y: scroll;
+}
+
+.modalData{
+    margin-top: 3%;
+}

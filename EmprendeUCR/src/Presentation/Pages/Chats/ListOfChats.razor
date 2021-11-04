@@ -1,0 +1,61 @@
+﻿@page "/chatUsers"
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Data
+@using EmprendeUCR.Application.Chats;
+@using EmprendeUCR.Domain.Chats.Entities;
+
+
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IChatService ChatService
+@inject IMessageService MessageService
+@inject IUtilizesChatService UtilizesChatService
+
+<div class="col-lg-12 control-section">
+    <div class="content-wrapper">
+        <div class="row">
+            <SfGrid SelectedRowIndex=0 DataSource="@myChats">
+                <GridEvents RowSelected="RowSelecthandler" TValue="UtilizesChat"></GridEvents>
+                <GridColumns>
+                    <GridColumn Field=@nameof(UtilizesChat.User_Email) HeaderText="Customer Name" Width="110"> </GridColumn>
+                </GridColumns>
+            </SfGrid>
+            <div class="grid-item">
+                <EmprendeUCR.Presentation.Pages.Chats.ChatPage new_chat_id=@SelectedChatID  otherUserOfChat=@otherEmail />
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .e-statustext,
+    .e-mastertext {
+        font-size: 15px;
+        font-family: Roboto;
+        opacity: 0.87;
+        padding: 1em;
+    }
+</style>
+@code{
+    public IEnumerable<UtilizesChat> GridData { get; set; }
+    public IEnumerable<UtilizesChat> myChats { get; set; }
+    public int SelectedChatID { get; set; }
+    public int? RowIndex { get; set; } = 1003;
+    public string myEmail = "";
+    public string otherEmail = "";
+    public void RowSelecthandler(RowSelectEventArgs<UtilizesChat> Args)
+    {
+        otherEmail = Args.Data.User_Email;
+        SelectedChatID = Args.Data.Chat_ID;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        myEmail = await sessionStorage.GetItemAsync<string>("Email");
+        GridData = await UtilizesChatService.GetUtilizesChatsAsync();
+        setMyChats();
+    }
+
+    public void setMyChats()
+    {
+        List<UtilizesChat> filter = new();
+        myChats = GridData.Where(m=>!m.User_Email.Equals(myEmail)).ToList();
+    }
+}

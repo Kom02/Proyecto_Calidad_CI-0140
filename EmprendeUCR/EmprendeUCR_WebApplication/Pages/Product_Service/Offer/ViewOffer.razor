@@ -1,0 +1,195 @@
+﻿@page "/ViewOffer"
+@page "/ViewOffer/{Offer_ID}"
+@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@using System;
+@inject NavigationManager NavigationManager
+@inject OfferService OfferService
+@inject Is_OfferService Is_OfferService
+@inject Product_PhotosService Product_PhotosService
+@inject Service_PhotosService Service_PhotosService
+
+<!--Titulo de la pagina-->
+<h3>Mi oferta</h3>
+<body class="border-1">
+    <div class="grid2 gap-3 ">
+        <!--Display de la foto (La primera de el primer producto involucrado, sino la primera del primer servicio involucrado)-->
+        <div class="w-40 content-center">
+            <!--Si logro cargar una foto de producto, ensena esa, sino la del servicio-->
+            @if (product_foto is not null)
+            {
+                <img src="@Product_PhotosService.convertImageDisplay(product_foto.Photos)" width="200" class=" img-card mt-2" />
+            }
+            else
+            {
+                @if (service_foto is not null)
+                {
+                    <img src="@Service_PhotosService.convertServiceImageDisplay(service_foto.Photos)" width="200" class=" img-card mt-2" />
+                }
+            }
+        </div>
+
+        <!--Detalles de la oferta-->
+        <div class=" w-50 border-1 shadow">
+            <ul class="m-lg-3">
+                <!-- Saca la descripicon de Offer-->
+                <li scope="row" width="200" valign="middle" align="left"> <b>Descripción:</b> @offer.Offer_Description</li>
+                <!-- Combo o descuento-->
+                <li scope="row" width="200" valign="middle" align="left"> <b>Tipo:</b> @(_Is_offer.Count > 1? "Combo" : "Descuento")</li>
+                <!-- Suma de todos los articulos en la oferta-->
+                <li scope="row" width="200" valign="middle" align="left"> <b>Precio Normal:</b> @totalOfTheOfferOriginalAmount</li>
+                <!-- Precio final despues de la oferta-->
+                <li scope="row" width="200" valign="middle" align="left"> <b>Precio Oferta:</b> @(offer.Discount)</li>
+                <!-- Initial active offer date-->
+                <li scope="row" width="200" valign="middle" align="left"> <b>Inicio de oferta:</b> @(offer.Initial_Date.ToShortDateString())</li>
+                <!-- Expire offer date-->
+                <li scope="row" width="200" valign="middle" align="left"> <b>Fin de oferta:</b> @(offer.Expire_Date.ToShortDateString())</li>
+            </ul>
+        </div>
+    </div>
+    <div class=" mt-3">
+        <!--Display de los productos o servicios involucrados-->
+        <div class=" float-md-start border-1 shadow w-100 ">
+            <t scope="auto" width="200" valign="middle" align="left"> <b>Productos o servicios asociados:</b></t>
+            <ul class="m-lg-3">
+                <!--Display de los productos involucrados en la oferta-->
+                @foreach (var product in _myProducts)
+                {
+                    <li scope="row" width="200" valign="middle" align="left"> @product.Product_Name</li>
+                }
+                <!--Display de los servicios involucrados en la oferta-->
+                @foreach (var service in _myServices)
+                {
+                    <li scope="row" width="200" valign="middle" align="left"> @service.Service_Name</li>
+                }
+            </ul>
+            <!--Botones-->
+            <div class=" m-lg-2">
+                <div class="col-xs-6">
+                    <!--Volver-->
+                    <input type="button" class="btn btn-primary btn-space" @onclick="@Cancel" value="Regresar" />
+                    <!--Editar-->
+                    <input type="button" class="btn btn-primary btn-space" @onclick="() => EditOffer(Offer_ID)" value="Editar" />
+                    <!--Eliminar-->
+                    <input type="button" class="btn btn-primary btn-space" @onclick="@Delete" value="Eliminar" />
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<!--El id de la oferta que se recibe por el url-->
+@functions{
+    [Parameter]
+    public string Offer_ID { get; set; }
+}
+
+@code {
+    // Carga la oferta que se esta mostrando
+    Offer offer = new Offer();
+    // Carga todos los is_offer de la oferta
+    IList<Is_Offer> _Is_offer = new List<Is_Offer>();
+    // Carga los productos involucrados en la oferta
+    IList<Product> _myProducts = new List<Product>();
+    // Carga los servicios incolucrados en la oferta
+    IList<Service> _myServices = new List<Service>();
+    // Almacena la foto del primer producto involucrado en la oferta
+    Product_Photos product_foto;
+    // Almacena la foto del primer servicio involucrado en la oferta
+    Service_Photos service_foto;
+    // La suma total del precio de los productos y servicios involucrados en la oferta
+    int totalOfTheOfferOriginalAmount = 0;
+    // El porcentaje de descuento que aplica la oferta
+    double discount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await loadAll();
+    }
+
+    public void getTotalSumOfPricesOfTheProductsAndServicesInOffer()
+    {
+        // Por cada producto o servicio, suma su precio al total de la oferta
+        foreach (var is_offer in _Is_offer)
+        {
+            Product product = Is_OfferService.GetProductRelated(is_offer);
+            if (product is not null)
+            {
+                totalOfTheOfferOriginalAmount += product.Price * is_offer.Amount;
+            }
+            else
+            {
+                Service service = Is_OfferService.GetServiceRelated(is_offer);
+                totalOfTheOfferOriginalAmount += service.Price_per_hour * is_offer.Amount;
+            }
+        }
+    }
+
+    // Redirige a la pagina de todas mis ofertas
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("Offers");
+    }
+
+    // Elimina la oferta
+    public async Task Delete()
+    {
+        await OfferService.DeleteOfferAsync(offer);
+        NavigationManager.NavigateTo("Offers");
+    }
+
+    // Redirige a editar la oferta
+    void EditOffer(string offerID)
+    {
+        NavigationManager.NavigateTo("EditOffer" + "/" + offer.Offer_ID);
+    }
+
+    // Carga todo lo necesario para desplegar la informacion de la oferta
+    public async Task loadAll()
+    {
+        // Carga el objeto oferta perteneciente al id que se recibio por parametro en el url
+        offer = await OfferService.GetOfferAsync(Int32.Parse(Offer_ID));
+        // carga todos los is_offer relacionados con la oferta
+        await loadIs_Offers();
+        // Carga todos los productos y servicios relacionados con la oferta
+        await loadProductsAndServicesRelated();
+        // Calcula la suma total del precio de los productos y servicios involucrados
+        getTotalSumOfPricesOfTheProductsAndServicesInOffer();
+        // Si la oferta tiene productos entonces carga la primera foto del primero
+        if (_myProducts?.Count > 0)
+        {
+            product_foto = Product_PhotosService.loadProductPhoto(_myProducts.FirstOrDefault().Code_ID);
+        }
+        // Si la oferta tiene servicios entonces carga la primera foto del primero
+        if (_myServices?.Count > 0)
+        {
+            service_foto = Service_PhotosService.loadServicePhoto(_myServices.FirstOrDefault().Code_ID);
+        }
+    }
+
+    // carga todos los is_offer relacionados con la oferta
+    public async Task loadIs_Offers()
+    {
+        _Is_offer = await OfferService.GetAllIs_OfferRelatedToOffer(offer);
+    }
+
+    // Carga todos los productos y servicios relacionados con la oferta
+    public async Task loadProductsAndServicesRelated()
+    {
+        // Recorre todos los is_offer, busca el producto o servicio perteneciente al is_offer
+        // Y luego lo agrega a la lista perteneciente
+        foreach (var is_offer in _Is_offer)
+        {
+            var product = await Is_OfferService.GetProductRelatedAsync(is_offer);
+            if (product is not null)
+            {
+                _myProducts.Add(product);
+            }
+            else
+            {
+                var service = await Is_OfferService.GetServiceRelatedAsync(is_offer);
+                _myServices.Add(service);
+            }
+        }
+    }
+
+}

@@ -1,0 +1,122 @@
+﻿@page "/ProductStatusInput"
+@using EmprendeUCR_WebApplication.Data.Entities;
+<div class=" border-1 shadow">
+
+
+    <h3 class="bg-blue text-center">Estados</h3>
+    <label for="AddStatus" class="control-label m-lg-2 ">Nuevo estado</label>
+    <div class="d-flex">
+        <input maxlength="30" @bind="@newStatus.Name" form="AddStatus" class="form-control m-lg-2 w-50  " />
+        <button class="material-icons-outlined  bg-blue  text-center m-lg-2  " hidden="@(!isStatusInputValid())" @onclick="()=>onAddStatus()"> add </button>
+    </div>
+
+    <ul ondragover="event.preventDefault();" style="margin:20px">
+        @for (int i = 0; i < statuses.Count; i++)
+        {
+            var item = statuses[i];
+
+            if (item != null)
+            {
+                <li class="row" draggable="true" style="list-style-type:none;" @key="item.Name" tabindex="1"
+                    @ondrop="@(()=> Drop(item))" @ondrag="@(()=> StartDrag(item))">
+
+                    <span class="col-1">@(i+1). </span>
+                    <span class="col-4">@item.Name</span>
+                    <span class="material-icons-outlined valign-center col-1">
+                        drag_indicator
+                    </span>
+                    <span class="material-icons-outlined valign-center col-1" @onclick="()=>onDeleteStatus(item)"> clear </span>
+
+                </li>
+            }
+            else
+            {
+                <li>NULL??</li>
+            }
+        }
+    </ul>
+    <br />
+</div>
+@code
+{
+
+    int currentIndex;
+    Personalized_Status newStatus = new Personalized_Status() { Name = "" };
+
+    [Parameter] public EventCallback<List<Personalized_Status>> OnStatusesUpdated { get; set; }
+    [Parameter] public List<Personalized_Status> statuses { get; set; }
+
+    // Gets called when page first loads.
+    protected override async Task OnInitializedAsync()
+    {
+        if(statuses.Count() < 1)
+        {
+            statuses.Add(new Personalized_Status() { Name = "Orden recibida" });
+            statuses.Add(new Personalized_Status() { Name = "En preparación" });
+            statuses.Add(new Personalized_Status() { Name = "En camino" });
+            statuses.Add(new Personalized_Status() { Name = "Entregado" });
+        }
+    }
+
+    void StartDrag(Personalized_Status item)
+    {
+        currentIndex = GetIndex(item);
+    }
+
+    void ClickItem(Personalized_Status item)
+    {
+        currentIndex = GetIndex(item);
+    }
+
+    int GetIndex(Personalized_Status item)
+    {
+        return statuses.FindIndex(a => a.Name == item.Name);
+    }
+
+    void Drop(Personalized_Status item)
+    {
+        if (item != null)
+        {
+            var index = GetIndex(item);
+            // get current item
+            var current = statuses[currentIndex];
+            // remove from current index
+            statuses.RemoveAt(currentIndex);
+            statuses.Insert(index, current);
+
+            // update current selection
+            currentIndex = index;
+            sendListToParent();
+            StateHasChanged();
+        }
+    }
+
+    void onDeleteStatus(Personalized_Status item)
+    {
+        var index = GetIndex(item);
+        statuses.RemoveAt(index);
+        sendListToParent();
+    }
+
+    void onAddStatus()
+    {
+        if (newStatus.Name != "")
+        {
+            statuses.Add(newStatus);
+            newStatus = new Personalized_Status() { Name = "" };
+            sendListToParent();
+        }
+    }
+
+    bool isStatusInputValid()
+    {
+        return newStatus.Name != null || newStatus.Name != "";
+    }
+
+    void sendListToParent()
+    {
+        OnStatusesUpdated.InvokeAsync(statuses);
+    }
+
+
+}

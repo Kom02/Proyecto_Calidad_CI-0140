@@ -1,0 +1,103 @@
+﻿@using EmprendeUCR_WebApplication.Data.Services
+@using EmprendeUCR_WebApplication.Data.Entities
+@inject ProductService ProductService
+@inject NavigationManager NavigationManager
+@inject UserService UserService
+@inject UserServicePandemic UserServicePandemic
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+
+<div class="head1 w-100 d-flex flex-row justify-content-between align-items-center px-5">
+    <div class="logo1">
+
+        @*
+            Line of code to display the site's name. Clicking on it will take
+            the user back to the main menu.
+        *@
+        <a href="/" class="color-white h2">EMPRENDEUCR</a>
+    </div>
+    <div class="acount-links">
+        @* If the user had previously clicked on the login button, then... *@
+
+        @if (!string.IsNullOrEmpty(myEmail))
+        {
+            @if (@amountProductsNotifications == 0)
+            {
+                <a Do Nothing class="color-silver mx-5 a-white isDisabled btn" data-toggle="tooltip" data-placement="bottom" title="El carrito se encuentra vacío.">
+                    <span class="material-icons-outlined icon-l">
+                        shopping_cart
+                    </span>@amountProductsNotifications
+
+                </a> }
+            @* Update notifications when the user logs in. *@
+            <a href="/admin" class="color-silver mx-5 a-white btn">
+                <span class="material-icons icon-l">
+                    notifications
+                </span>
+            </a> @* Display account circle when the user logs in. *@
+            <img width="40" height="40" src="data:image;base64,@System.Convert.ToBase64String(UserServicePandemic.GetUserByEmail(myEmail).Photo)" class="rounded-circle" @onclick="goProfile"> }
+        else
+        { @* If the user has not logged in, then display the log in button *@
+        <a href="/registro" class="color-silver mx-5 a-white">
+            Registrarse
+        </a>
+        <button @onclick="logear" class="bg-white border-none p-2">Iniciar Sesion</button>}
+    </div>
+</div>
+
+
+
+@code { private string myEmail;
+    private string homeRef;
+    private int myType;
+
+    // Int value used to store the total amount of products stored in
+    // the shopping cart. To be used in the HTML section of this file.
+    private int amountProductsNotifications;
+
+    // Virtual method from Blazor overridden to adapt it to our program.
+    // It invokes a method to get the total number of elements in a table
+    // when the blazor program starts. In this case, it retrieves the
+    // number of articles from the SC table.
+
+    protected override async Task OnInitializedAsync()
+    {
+        amountProductsNotifications = ProductService.GetProductsQuantity();
+        myEmail = await sessionStorage.GetItemAsync<string>("Email");
+        myType = await sessionStorage.GetItemAsync<int>("Type");
+        this.UpdateParams();
+    }
+
+    public void UpdateParams()
+    {
+
+        switch (myType)
+        {
+            case 1:
+                homeRef = "/Home";
+                break;
+            case 2:
+                homeRef = "/HomeEntrepreneur";
+                break;
+            case 3:
+                homeRef = "/admin";
+                break;
+            default:
+                homeRef = "";
+                break;
+        }
+        StateHasChanged();
+    }
+
+    // This method changes the logeado value. It lets the system know
+    // when the user has logged into their account. To be used with the
+    // HTML section of this file.
+    private void logear()
+    {
+        NavigationManager.NavigateTo("/Login");
+    }
+
+    private void goProfile()
+    {
+        NavigationManager.NavigateTo("/Profile");
+    } }
