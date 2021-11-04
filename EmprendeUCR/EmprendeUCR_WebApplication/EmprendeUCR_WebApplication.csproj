@@ -29,9 +29,9 @@
 		<PackageReference Include="LanguageExt.Core" Version="3.4.15" />
 		<PackageReference Include="Dapper" Version="2.0.90" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.DataAnnotations.Validation" Version="3.2.0-preview2.20160.5" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.6">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.7" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.7" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.7">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
@@ -61,7 +61,7 @@
 	</ItemGroup>
 
 	<ProjectExtensions>
-		Include="Microsoft.EntityFrameworkCore" Version="5.0.6"
+		Include="Microsoft.EntityFrameworkCore" Version="5.0.7"
 		<VisualStudio>
 			<UserProperties appsettings_1json__JsonSchema="" />
 		</VisualStudio>
@@ -71,9 +71,9 @@
 		<PackageReference Include="EASendMail" Version="7.7.0.9" />
 		<PackageReference Include="MailKit" Version="2.13.0" />
 		<PackageReference Include="MailSystem.Net-trunk" Version="2.1.41" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.6">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.7" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.7" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.7">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
@@ -97,9 +97,9 @@
 
   <ItemGroup>
     <PackageReference Include="BlazorMaterialIcons" Version="0.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.6">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
